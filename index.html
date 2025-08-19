@@ -4,115 +4,75 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Document Scanner — HD + Auto Detect (OpenCV)</title>
+  <!-- Material UI CDN -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mui/material@5.15.14/dist/material.min.css">
+  <!-- Cropper.js CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
   <style>
-    :root{
-      --bg:#0b1020;--card:#121933;--muted:#98a2b3;--text:#e6eaf2;--accent:#6ea8fe;--ok:#22c55e;--warn:#f59e0b;
+    body { background: #f5f6fa; color: #222; font-family: 'Roboto', Arial, sans-serif; }
+    .mui-container { max-width: 900px; margin: auto; padding: 16px; }
+    .mui-card { margin-bottom: 18px; }
+    .mui-btn { min-width: 120px; margin: 6px 0; }
+    .scanner-video { width: 100%; border-radius: 12px; background: #000; }
+    .thumbs { display: flex; flex-wrap: wrap; gap: 12px; }
+    .thumb { border-radius: 12px; overflow: hidden; border: 1px solid #ddd; width: 110px; height: 140px; position: relative; }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .thumb .mui-btn { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); }
+    @media (max-width: 600px) {
+      .mui-container { padding: 4px; }
+      .thumb { width: 80px; height: 100px; }
     }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;background:var(--bg);color:var(--text)}
-    header{padding:14px 16px;border-bottom:1px solid #1f2747;background:linear-gradient(180deg,#0e1430,#0a0f26)}
-    header h1{margin:0;font-size:18px}
-    main{display:grid;gap:12px;padding:12px}
-    @media(min-width:920px){main{grid-template-columns:1.2fr .8fr}}
-    .card{background:var(--card);border:1px solid #1f2747;border-radius:16px;box-shadow:0 6px 40px rgba(0,0,0,.35)}
-    .content{padding:12px}
-    .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px}
-    button,select{background:#0d1430;color:var(--text);border:1px solid #2a355f;border-radius:12px;padding:10px 12px;font-weight:600;cursor:pointer}
-    button:hover{border-color:#40509a}
-    button.primary{background:linear-gradient(180deg,#2a63ff,#1d4ed8);border-color:#3356e0}
-    button.success{background:linear-gradient(180deg,#22c55e,#16a34a);border-color:#1ea756}
-    button.warning{background:linear-gradient(180deg,#f59e0b,#d97706);border-color:#d97706}
-    button.ghost{background:transparent}
-    button:disabled{opacity:.6;cursor:not-allowed}
-    video,canvas{width:100%;max-height:65vh;background:#000;border-radius:12px}
-    .thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px}
-    .thumb{position:relative;border-radius:12px;overflow:hidden;border:1px solid #24305e}
-    .thumb img{display:block;width:100%;height:110px;object-fit:cover}
-    .thumb .meta{position:absolute;left:6px;bottom:6px;background:rgba(0,0,0,.55);padding:2px 6px;border-radius:999px;font-size:12px}
-    .thumb .btns{position:absolute;top:6px;right:6px;display:flex;gap:6px}
-    .thumb .btns button{background:rgba(0,0,0,.55);border:1px solid #3b4677;padding:6px;border-radius:10px}
-    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-    .spacer{flex:1}
-    .hint{color:var(--muted);font-size:12px}
-    .badge{display:inline-flex;gap:6px;align-items:center;font-size:12px;background:#0d1430;border:1px solid #2a355f;border-radius:999px;padding:6px 8px}
-
-    /* Crop Overlay */
-    .overlay{position:fixed;inset:0;background:rgba(4,6,20,.8);backdrop-filter:saturate(120%) blur(2px);display:none;align-items:center;justify-content:center;z-index:50}
-    .overlay.open{display:flex}
-    .editor{position:relative;max-width:96vw;max-height:84vh;border-radius:16px;border:1px solid #2a355f;overflow:hidden;background:#0b1020}
-    .editor img{display:block;max-width:96vw;max-height:84vh}
-    .edit-ui{position:absolute;inset:0}
-    .poly{position:absolute;inset:0}
-    .handle{position:absolute;width:22px;height:22px;border-radius:50%;background:#1d4ed8;border:2px solid #93c5fd;box-shadow:0 0 0 2px rgba(0,0,0,.35);touch-action:none}
-    .handle:active{transform:scale(1.06)}
-    .overlay-toolbar{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
-    .overlay-toolbar button{box-shadow:0 8px 24px rgba(0,0,0,.35)}
-    .toggle{display:inline-flex;gap:8px;align-items:center}
-    .toggle input{accent-color:#60a5fa}
+    .cropper-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+    .cropper-box { background: #fff; border-radius: 16px; padding: 18px; max-width: 98vw; max-height: 90vh; }
+    .cropper-img { max-width: 90vw; max-height: 70vh; display: block; margin: auto; border-radius: 12px; }
   </style>
   <!-- OpenCV.js for robust corner detection -->
   <script async src="https://docs.opencv.org/4.x/opencv.js" onload="window.cvReady=true"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
-<header>
-  <h1>📄 Document Scanner — HD + Auto Detect</h1>
-</header>
-<main>
-  <section class="card">
-    <div class="content">
-      <div class="toolbar">
-        <select id="cameraSelect" title="Choose camera"></select>
-        <button id="refreshBtn" class="ghost">↻ Refresh</button>
-        <span class="badge" id="supportBadge">FSAccess ❌</span>
-        <span class="badge" id="cvBadge">OpenCV ⏳</span>
-        <span class="spacer"></span>
+<div class="mui-container">
+  <div class="mui-card mui-shadow-2">
+    <div class="mui-card-content">
+      <h2 class="mui-typography">Document Scanner</h2>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
+        <select id="cameraSelect" title="Choose camera" class="mui-btn"></select>
+        <button id="refreshBtn" class="mui-btn mui-btn--secondary">↻ Refresh</button>
+        <span class="mui-typography mui-typography--caption" id="supportBadge">FSAccess ❌</span>
+        <span class="mui-typography mui-typography--caption" id="cvBadge">OpenCV ⏳</span>
+        <span style="flex:1"></span>
       </div>
-      <video id="video" autoplay playsinline muted></video>
-      <div class="row" style="margin-top:8px">
-        <button id="captureBtn" class="primary">📸 Capture (HD)</button>
-        <button id="torchBtn" class="ghost">🔦 Torch</button>
+      <video id="video" class="scanner-video" autoplay playsinline muted></video>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px;">
+        <button id="captureBtn" class="mui-btn mui-btn--primary">📸 Capture (HD)</button>
+        <button id="torchBtn" class="mui-btn mui-btn--secondary">🔦 Torch</button>
       </div>
       <canvas id="workCanvas" hidden></canvas>
     </div>
-  </section>
-
-  <section class="card">
-    <div class="content">
-      <div class="row">
-        <h3 style="margin:6px 0">Pages</h3>
-        <span class="spacer"></span>
-        <button id="saveAllBtn" class="success">💾 Save JPGs</button>
-        <button id="saveFolderBtn" class="ghost">📁 Save to Folder</button>
-        <button id="savePdfBtn" class="warning">📕 Save PDF</button>
-        <button id="clearAllBtn" class="ghost">🧹 Clear</button>
+  </div>
+  <div class="mui-card mui-shadow-1">
+    <div class="mui-card-content">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+        <h3 class="mui-typography">Pages</h3>
+        <span style="flex:1"></span>
+        <button id="saveAllBtn" class="mui-btn mui-btn--success">💾 Save JPGs</button>
+        <button id="saveFolderBtn" class="mui-btn mui-btn--secondary">📁 Save to Folder</button>
+        <button id="savePdfBtn" class="mui-btn mui-btn--warning">📕 Save PDF</button>
+        <button id="clearAllBtn" class="mui-btn mui-btn--secondary">🧹 Clear</button>
       </div>
       <div id="thumbs" class="thumbs"></div>
-      <p class="hint">Tip: After capture, corners are auto-detected. Tap a thumbnail to fine‑tune the 4 handles, then <b>Apply</b>.</p>
-    </div>
-  </section>
-</main>
-
-<!-- Crop Overlay -->
-<div id="overlay" class="overlay" aria-hidden="true">
-  <div class="editor">
-    <img id="editImg" alt="edit" />
-    <svg id="poly" class="poly" xmlns="http://www.w3.org/2000/svg">
-      <polygon id="polyShape" fill="rgba(99,102,241,0.18)" stroke="#60a5fa" stroke-width="2" points=""/>
-    </svg>
-    <div class="edit-ui">
-      <div id="h0" class="handle"></div>
-      <div id="h1" class="handle"></div>
-      <div id="h2" class="handle"></div>
-      <div id="h3" class="handle"></div>
+      <p class="mui-typography mui-typography--caption">Tip: After capture, corners are auto-detected. Tap a thumbnail to crop and enhance.</p>
     </div>
   </div>
-  <div class="overlay-toolbar">
-    <label class="toggle"><input type="checkbox" id="enhanceToggle" checked /> Auto Enhance</label>
-    <button id="cancelEdit" class="ghost">✖ Cancel</button>
-    <button id="resetEdit" class="ghost">⟲ Reset</button>
-    <button id="applyEdit" class="success">✔ Apply</button>
+</div>
+<!-- Cropper Modal -->
+<div id="cropperModal" class="cropper-modal" style="display:none;">
+  <div class="cropper-box">
+    <img id="cropperImg" class="cropper-img" />
+    <div style="text-align:center;margin-top:12px;">
+      <button class="mui-btn mui-btn--success" onclick="saveCrop()">Save Crop</button>
+      <button class="mui-btn mui-btn--danger" onclick="closeCropper()">Cancel</button>
+    </div>
   </div>
 </div>
 
@@ -193,28 +153,57 @@
     ctx.drawImage(video,0,0,vw,vh);
     const dataUrl=workCanvas.toDataURL('image/jpeg',0.95);
     const page={dataUrl,w:vw,h:vh};
-    pages.push(page);
-    renderThumbs();
-    // Run auto-detect in background and store quad for this page
+    // Run auto-detect in background and store quad for this page BEFORE pushing to pages
     try{
       await waitForCV();
-      const quad = await detectCornersOpenCV(page);
+      const quad = await detectCornersOpenCV({dataUrl,w:vw,h:vh});
       if(quad) page.quad = quad; // TL,TR,BR,BL in image coords
     }catch(e){console.warn('Auto-detect failed', e)}
+    pages.push(page);
+    renderThumbs();
   }
 
-  function renderThumbs(){
-    thumbs.innerHTML='';
-    pages.forEach((p,i)=>{
-      const div=document.createElement('div');div.className='thumb';div.dataset.index=i;
-      const img=document.createElement('img'); img.src=p.dataUrl; img.alt='page';
-      img.addEventListener('click',()=>openEditor(i));
-      const meta=document.createElement('span'); meta.className='meta'; meta.textContent=`${p.w}×${p.h}`;
-      const btns=document.createElement('div'); btns.className='btns';
-      const del=document.createElement('button'); del.title='Remove'; del.textContent='✕';
-      del.onclick=()=>{pages.splice(i,1);renderThumbs()};
-      btns.appendChild(del); div.appendChild(img); div.appendChild(meta); div.appendChild(btns); thumbs.appendChild(div);
-    })
+  // Cropper.js integration
+  let cropper = null;
+  function openCropper(pageIdx) {
+    const page = pages[pageIdx];
+    const img = document.getElementById('cropperImg');
+    img.src = page.dataUrl;
+    document.getElementById('cropperModal').style.display = 'flex';
+    setTimeout(() => {
+      cropper = new Cropper(img, {
+        viewMode: 1,
+        autoCropArea: 1,
+        movable: true,
+        zoomable: true,
+        rotatable: false,
+        scalable: false,
+        responsive: true,
+        background: false
+      });
+    }, 100);
+    cropperModal.dataset.pageIdx = pageIdx;
+  }
+  function closeCropper() {
+    document.getElementById('cropperModal').style.display = 'none';
+    if (cropper) { cropper.destroy(); cropper = null; }
+  }
+  function saveCrop() {
+    if (!cropper) return;
+    const pageIdx = cropperModal.dataset.pageIdx;
+    const canvas = cropper.getCroppedCanvas({ imageSmoothingEnabled: true, imageSmoothingQuality: 'high' });
+    pages[pageIdx].dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+    closeCropper();
+    renderThumbs();
+  }
+  function renderThumbs() {
+    thumbs.innerHTML = '';
+    pages.forEach((page, idx) => {
+      const div = document.createElement('div');
+      div.className = 'thumb';
+      div.innerHTML = `<img src="${page.dataUrl}"/><button class='mui-btn mui-btn--primary' onclick='openCropper(${idx})'>Edit</button>`;
+      thumbs.appendChild(div);
+    });
   }
 
   function imgDisplayRect(imgEl){
@@ -429,11 +418,11 @@
     // Build Mats
     const src=cv.matFromImageData(imgData);
     const gray=new cv.Mat(); cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-    const blur=new cv.Mat(); cv.GaussianBlur(gray, blur, new cv.Size(5,5), 0);
-    const edges=new cv.Mat(); cv.Canny(blur, edges, 50, 150);
+    const blur=new cv.Mat(); cv.GaussianBlur(gray, blur, new cv.Size(7,7), 0);
+    const edges=new cv.Mat(); cv.Canny(blur, edges, 30, 120);
 
     // Dilate slightly to close gaps
-    const kernel=cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(3,3));
+    const kernel=cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(5,5));
     cv.dilate(edges, edges, kernel);
 
     const contours=new cv.MatVector(); const hierarchy=new cv.Mat();
@@ -443,7 +432,7 @@
     for(let i=0;i<contours.size();i++){
       const cnt=contours.get(i);
       const peri=cv.arcLength(cnt,true);
-      const approx=new cv.Mat(); cv.approxPolyDP(cnt, approx, 0.02*peri, true);
+      const approx=new cv.Mat(); cv.approxPolyDP(cnt, approx, 0.018*peri, true);
       if(approx.rows===4){
         const area=cv.contourArea(approx);
         if(area>bestArea){ bestArea=area; best=approx; }
