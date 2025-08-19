@@ -90,8 +90,6 @@ const clearAllBtn = $('#clearAllBtn');
 const torchBtn = $('#torchBtn');
 const cameraSelect = $('#cameraSelect');
 const refreshBtn = $('#refreshBtn');
-const supportBadge = $('#supportBadge');
-const cvBadge = $('#cvBadge');
 let mediaStream=null, track=null;
 let pages=[];
 let cropper = null;
@@ -120,9 +118,9 @@ async function startCamera(deviceId){
 function waitForCV(){
   return new Promise((res)=>{
     const iv=setInterval(()=>{
-      if(window.cv && window.cv.Mat){clearInterval(iv); cvBadge.textContent='OpenCV ✅'; res();}
+  if(window.cv && window.cv.Mat){clearInterval(iv); res();}
     },80);
-    setTimeout(()=>{cvBadge.textContent='OpenCV ⚠️';},4000);
+  // Removed cvBadge update
   });
 }
 
@@ -267,7 +265,7 @@ function ts(){const d=new Date();return d.toISOString().replace(/[:.]/g,'-')}
 
 // Initial load
 window.addEventListener('DOMContentLoaded', async () => {
-  supportBadge.textContent = `FSAccess ${window.showDirectoryPicker?'✅':'❌'}`;
+  // Removed supportBadge update
   await listCameras();
   await startCamera(cameraSelect.value||undefined);
 });
