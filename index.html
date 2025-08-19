@@ -1,38 +1,25 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Sewadar Document Scanner</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mui/material@5.15.14/dist/material.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
   <style>
     body { background: #181c24; color: #f3f4f6; font-family: 'Inter', 'Roboto', Arial, sans-serif; margin:0; height: 100vh; overflow: hidden; }
     .fixed-header {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 56px;
-      background: #23283a;
-      color: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.3rem;
-      font-weight: 600;
-      letter-spacing: 1px;
-      z-index: 100;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      position: fixed; top: 0; left: 0; width: 100vw; height: 56px;
+      background: #23283a; color: #fff; display: flex; align-items: center; justify-content: center;
+      font-size: 1.3rem; font-weight: 600; letter-spacing: 1px; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.2);
     }
+    /* --- Improved Footer for Mobile --- */
     .fixed-footer {
       position: fixed;
       bottom: 0;
       left: 0;
       width: 100vw;
-      height: 72px;
+      height: 80px;
       background: #23283a;
       color: #fff;
       display: flex;
@@ -51,77 +38,59 @@
       padding: 0 12px;
     }
     .footer-btn {
-      background: none;
+      background: #23283a;
       border: none;
       color: #fff;
-      font-size: 2rem;
+      font-size: 2.2rem;
       margin: 0 8px;
-      padding: 8px 12px;
+      padding: 0;
+      width: 56px;
+      height: 56px;
       border-radius: 50%;
-      transition: background 0.2s;
+      transition: background 0.2s, box-shadow 0.2s;
       cursor: pointer;
       outline: none;
       display: flex;
       align-items: center;
       justify-content: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
     }
     .footer-btn:active {
       background: #444;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.18);
     }
     .footer-btn.capture {
-      background: #00c853;
+      background: linear-gradient(90deg, #00c853 60%, #4f8cff 100%);
       color: #fff;
       font-size: 2.7rem;
-      box-shadow: 0 2px 8px rgba(0,200,83,0.3);
-      padding: 12px 24px;
+      box-shadow: 0 2px 12px rgba(0,200,83,0.3);
+      width: 64px;
+      height: 64px;
+      padding: 0;
       border-radius: 50%;
       margin: 0 16px;
       border: 3px solid #fff;
-    }
-    .footer-btn.capture:active {
-      background: #009624;
-    }
-    .scanner-area {
-      flex: 1;
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
-      position: relative;
-      margin-top: 56px;
-      margin-bottom: 72px;
-      height: calc(100vh - 128px);
-      width: 100vw;
-      overflow: hidden;
+    }
+    .footer-btn.capture:active {
+      background: linear-gradient(90deg, #009624 60%, #3a6edc 100%);
+    }
+    .scanner-area {
+      flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      position: relative; margin-top: 56px; margin-bottom: 72px; height: calc(100vh - 128px); width: 100vw; overflow: hidden;
     }
     .scanner-video {
-      width: 100vw;
-      max-width: 420px;
-      height: 100%;
-      max-height: 100%;
-      border-radius: 16px;
-      box-shadow: 0 2px 16px rgba(0,0,0,0.4);
-      object-fit: cover;
-      background: #222;
-      margin: 0 auto;
-      display: block;
+      width: 100vw; max-width: 420px; height: 100%; max-height: 100%; border-radius: 16px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.4); object-fit: cover; background: #222; margin: 0 auto; display: block;
     }
     .video-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      max-width: 420px;
-      height: 100%;
-      pointer-events: none;
+      position: absolute; top: 0; left: 0; width: 100vw; max-width: 420px; height: 100%; pointer-events: none;
     }
     @media (max-width: 480px) {
-      .scanner-video, .video-overlay, .fixed-header, .fixed-footer {
-        max-width: 100vw;
-      }
-      .scanner-area {
-        padding: 0;
-      }
+      .scanner-video, .video-overlay, .fixed-header, .fixed-footer { max-width: 100vw; }
+      .scanner-area { padding: 0; }
     }
     .cropper-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 9999; }
     .cropper-box { background: #23283a; border-radius: 20px; padding: 18px; max-width: 98vw; max-height: 90vh; box-shadow: 0 2px 24px #23283a44; }
@@ -140,50 +109,191 @@
     <div id="thumbs" class="thumbs"></div>
     <div style="text-align:center;color:#a3a8b8;font-size:.98rem;margin-top:8px;">Swipe scans below. Tap to crop & save.</div>
   </div>
+  <!-- Replace the footer HTML -->
   <div class="fixed-footer">
     <div class="footer-menu">
-      <div style="display: flex; gap: 8px;">
-        <select id="cameraSelect" title="Choose camera" class="footer-btn"><!-- camera options --></select>
+      <div style="display: flex; gap: 0; align-items: center;">
+        <select id="cameraSelect" title="Choose camera" class="footer-btn" style="width:56px;height:56px;font-size:1rem;padding:0 8px;background:#23283a;color:#fff;border:none;border-radius:50%;margin-right:4px;"></select>
         <button class="footer-btn" id="btnTorch" title="Toggle Torch"><i class="fas fa-bolt"></i></button>
       </div>
-      <button class="footer-btn capture" id="btnCapture" title="Capture"><i class="fas fa-circle"></i></button>
-      <div style="display: flex; gap: 8px;">
+      <button class="footer-btn capture" id="btnCapture" title="Capture"><i class="fas fa-camera"></i></button>
+      <div style="display: flex; gap: 0; align-items: center;">
         <button class="footer-btn" id="btnSavePDF" title="Save as PDF"><i class="fas fa-file-pdf"></i></button>
         <button class="footer-btn" id="btnClear" title="Clear Gallery"><i class="fas fa-trash"></i></button>
       </div>
     </div>
   </div>
-<!-- Cropper Modal -->
-<div id="cropperModal" class="cropper-modal" style="display:none;">
-  <div class="cropper-box">
-    <img id="cropperImg" class="cropper-img" />
-    <div style="text-align:center;margin-top:12px;">
-      <button class="btn" onclick="saveCrop()">✔</button>
-      <button class="btn secondary" onclick="closeCropper()">✖</button>
+  <!-- Cropper Modal -->
+  <div id="cropperModal" class="cropper-modal" style="display:none;">
+    <div class="cropper-box">
+      <img id="cropperImg" class="cropper-img" />
+      <div style="text-align:center;margin-top:12px;">
+        <button class="btn" onclick="saveCrop()">✔</button>
+        <button class="btn secondary" onclick="closeCropper()">✖</button>
+      </div>
     </div>
   </div>
-</div>
-torchBtn.onclick=async()=>{
-cameraSelect.addEventListener('change',()=>startCamera(cameraSelect.value));
-<script>
-// ...existing code...
-// Button event listeners for new footer
-document.getElementById('btnCapture').onclick = () => {
-  if (window.capture) window.capture();
-};
-document.getElementById('btnTorch').onclick = () => {
-  if (window.torchBtn && window.torchBtn.onclick) window.torchBtn.onclick();
-};
-document.getElementById('btnSavePDF').onclick = () => {
-  if (window.savePdfBtn && window.savePdfBtn.onclick) window.savePdfBtn.onclick();
-};
-document.getElementById('btnClear').onclick = () => {
-  if (window.clearAllBtn && window.clearAllBtn.onclick) window.clearAllBtn.onclick();
-};
-document.getElementById('cameraSelect').onchange = () => {
-  if (window.cameraSelect && window.cameraSelect.onchange) window.cameraSelect.onchange();
-};
-// ...existing code...
-</script>
+  <script>
+    window.addEventListener('DOMContentLoaded', async () => {
+      let video = document.getElementById('video');
+      let canvas = document.getElementById('workCanvas');
+      let thumbs = document.getElementById('thumbs');
+      let cameraSelect = document.getElementById('cameraSelect');
+      let btnCapture = document.getElementById('btnCapture');
+      let btnTorch = document.getElementById('btnTorch');
+      let btnSavePDF = document.getElementById('btnSavePDF');
+      let btnClear = document.getElementById('btnClear');
+      let cropperModal = document.getElementById('cropperModal');
+      let cropperImg = document.getElementById('cropperImg');
+      let cropper = null;
+      let scans = [];
+      let stream = null;
+      let track = null;
+      let torchOn = false;
+
+      async function listCameras() {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        cameraSelect.innerHTML = '';
+        devices.filter(d => d.kind === 'videoinput').forEach((d, i) => {
+          let opt = document.createElement('option');
+          opt.value = d.deviceId;
+          opt.textContent = d.label || `Camera ${i+1}`;
+          cameraSelect.appendChild(opt);
+        });
+      }
+
+      async function startCamera(deviceId) {
+        if (stream) {
+          stream.getTracks().forEach(t => t.stop());
+        }
+        let constraints = {
+          video: { deviceId: deviceId ? { exact: deviceId } : undefined, facingMode: 'environment' }
+        };
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = stream;
+        track = stream.getVideoTracks()[0];
+      }
+
+      cameraSelect.addEventListener('change', () => startCamera(cameraSelect.value));
+
+      btnTorch.addEventListener('click', async () => {
+        if (!track) return;
+        const cap = track.getCapabilities();
+        if (cap.torch) {
+          torchOn = !torchOn;
+          await track.applyConstraints({ advanced: [{ torch: torchOn }] });
+        }
+      });
+
+      btnCapture.addEventListener('click', async () => {
+        if (!video.srcObject) return;
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        let ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        if (window.cvReady && window.cv) {
+          let src = cv.matFromImageData(imgData);
+          let dst = new cv.Mat();
+          cv.cvtColor(src, dst, cv.COLOR_RGBA2GRAY);
+          cv.GaussianBlur(dst, dst, new cv.Size(5,5), 0, 0, cv.BORDER_DEFAULT);
+          cv.Canny(dst, dst, 50, 150);
+          let contours = new cv.MatVector();
+          let hierarchy = new cv.Mat();
+          cv.findContours(dst, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+          let maxArea = 0, maxContour = null;
+          for (let i = 0; i < contours.size(); i++) {
+            let cnt = contours.get(i);
+            let area = cv.contourArea(cnt);
+            if (area > maxArea) {
+              maxArea = area;
+              maxContour = cnt;
+            }
+          }
+          if (maxContour && maxArea > 10000) {
+            let rect = cv.boundingRect(maxContour);
+            let cropCanvas = document.createElement('canvas');
+            cropCanvas.width = rect.width;
+            cropCanvas.height = rect.height;
+            cropCanvas.getContext('2d').drawImage(canvas, rect.x, rect.y, rect.width, rect.height, 0, 0, rect.width, rect.height);
+            let dataUrl = cropCanvas.toDataURL('image/png');
+            scans.push(dataUrl);
+          } else {
+            scans.push(canvas.toDataURL('image/png'));
+          }
+          src.delete(); dst.delete(); contours.delete(); hierarchy.delete();
+        } else {
+          scans.push(canvas.toDataURL('image/png'));
+        }
+        renderThumbs();
+      });
+
+      function renderThumbs() {
+        thumbs.innerHTML = '';
+        scans.forEach((src, idx) => {
+          let img = document.createElement('img');
+          img.src = src;
+          img.style.width = '80px';
+          img.style.height = '80px';
+          img.style.objectFit = 'cover';
+          img.style.margin = '6px';
+          img.style.borderRadius = '10px';
+          img.style.cursor = 'pointer';
+          img.onclick = () => openCropper(idx);
+          thumbs.appendChild(img);
+        });
+      }
+
+      function openCropper(idx) {
+        cropperModal.style.display = '';
+        cropperImg.src = scans[idx];
+        cropper = new Cropper(cropperImg, {
+          viewMode: 1,
+          autoCropArea: 1,
+          movable: true,
+          zoomable: true,
+          scalable: true,
+          rotatable: true
+        });
+        cropperModal.dataset.idx = idx;
+      }
+      window.closeCropper = function() {
+        cropperModal.style.display = 'none';
+        if (cropper) cropper.destroy();
+        cropper = null;
+      }
+      window.saveCrop = function() {
+        if (!cropper) return;
+        let idx = cropperModal.dataset.idx;
+        let cropped = cropper.getCroppedCanvas().toDataURL('image/png');
+        scans[idx] = cropped;
+        renderThumbs();
+        window.closeCropper();
+      }
+
+      btnSavePDF.addEventListener('click', () => {
+        if (!scans.length) return;
+        const { jsPDF } = window.jspdf;
+        let pdf = new jsPDF();
+        scans.forEach((src, i) => {
+          let img = new Image();
+          img.src = src;
+          pdf.addImage(img, 'PNG', 10, 10, 190, 270);
+          if (i < scans.length - 1) pdf.addPage();
+        });
+        pdf.save('sewadar_document.pdf');
+      });
+
+      btnClear.addEventListener('click', () => {
+        scans = [];
+        renderThumbs();
+      });
+
+      await listCameras();
+      if (cameraSelect.options.length) {
+        await startCamera(cameraSelect.value);
+      }
+    });
+  </script>
 </body>
 </html>
