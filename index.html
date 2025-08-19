@@ -3,11 +3,43 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Sewadar Document Scanner</title>
+  <title>Document Scanner</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
   <style>
+  .sr-only { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+  body.high-contrast { background: #000 !important; color: #fff !important; }
+  body.high-contrast .fixed-header, body.high-contrast .fixed-footer, body.high-contrast .scanner-card { background: #000 !important; color: #fff !important; border-color: #fff !important; }
+  body.high-contrast .footer-btn, body.high-contrast .footer-btn.capture { background: #000 !important; color: #fff !important; border-color: #fff !important; }
     body { background: #181c24; color: #f3f4f6; font-family: 'Inter', 'Roboto', Arial, sans-serif; margin:0; height: 100vh; overflow: hidden; }
+    .sr-only {
+      position: absolute;
+      left: -9999px;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+    }
+    body.high-contrast {
+      background: #000 !important;
+      color: #fff !important;
+    }
+    body.high-contrast .fixed-header,
+    body.high-contrast .fixed-footer,
+    body.high-contrast .scanner-card {
+      background: #000 !important;
+      color: #fff !important;
+      border-color: #fff !important;
+    }
+    body.high-contrast .footer-btn,
+    body.high-contrast .footer-btn.capture {
+      background: #000 !important;
+      color: #fff !important;
+      border-color: #fff !important;
+    }
+  .sr-only { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+  body.high-contrast { background: #000 !important; color: #fff !important; }
+  body.high-contrast .fixed-header, body.high-contrast .fixed-footer, body.high-contrast .scanner-card { background: #000 !important; color: #fff !important; border-color: #fff !important; }
+  body.high-contrast .footer-btn, body.high-contrast .footer-btn.capture { background: #000 !important; color: #fff !important; border-color: #fff !important; }
     .fixed-header {
       position: fixed; top: 0; left: 0; width: 100vw; height: 54px;
       background: linear-gradient(90deg, #3a4256 60%, #4f8cff 100%);
@@ -160,68 +192,96 @@
     .cropper-modal {
       position: fixed;
       inset: 0;
-      background: #181c24ee;
+      background: rgba(24,28,36,0.98);
       display: flex;
       align-items: center;
       justify-content: center;
       z-index: 9999;
       padding: 0;
-      backdrop-filter: blur(2px);
+      backdrop-filter: blur(6px);
       transition: opacity 0.2s;
     }
     .cropper-box {
       background: #23283a;
-      border-radius: 20px;
-      padding: 24px 18px 18px 18px;
-      max-width: 96vw;
-      max-height: 88vh;
-      box-shadow: 0 2px 32px #23283a88;
+      border-radius: 24px;
+      padding: 32px 24px 24px 24px;
+      max-width: 98vw;
+      max-height: 90vh;
+      box-shadow: 0 8px 48px #23283aee, 0 2px 32px #23283a88;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
+      border: 2px solid #4f8cff;
     }
     .cropper-img {
-      max-width: 90vw;
-      max-height: 60vh;
+      max-width: 92vw;
+      max-height: 62vh;
       display: block;
       margin: auto;
-      border-radius: 16px;
-      box-shadow: 0 2px 16px rgba(0,0,0,0.18);
+      border-radius: 18px;
+      box-shadow: 0 4px 32px rgba(79,140,255,0.18), 0 2px 16px rgba(0,0,0,0.18);
       background: #222;
+      border: 2px solid #4f8cff;
     }
     .cropper-box button {
-      margin: 0 8px;
-      font-size: 1.3rem;
-      padding: 8px 18px;
-      border-radius: 10px;
+      margin: 0 12px;
+      font-size: 1.6rem;
+      padding: 12px 28px;
+      border-radius: 12px;
       border: none;
-      background: #00c853;
+      background: linear-gradient(90deg, #00c853 60%, #4f8cff 100%);
       color: #fff;
       font-weight: 600;
       cursor: pointer;
-      box-shadow: 0 2px 8px rgba(0,200,83,0.12);
+      box-shadow: 0 2px 12px rgba(0,200,83,0.18);
       transition: background 0.2s;
     }
     .cropper-box button.secondary {
       background: #444;
     }
     .cropper-box button:active {
-      background: #009624;
+      background: linear-gradient(90deg, #009624 60%, #3a6edc 100%);
+    }
+    .sr-only {
+      position: absolute;
+      left: -9999px;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+    }
+    body.high-contrast {
+      background: #000 !important;
+      color: #fff !important;
+    }
+    body.high-contrast .fixed-header,
+    body.high-contrast .fixed-footer,
+    body.high-contrast .scanner-card {
+      background: #000 !important;
+      color: #fff !important;
+      border-color: #fff !important;
+    }
+    body.high-contrast .footer-btn,
+    body.high-contrast .footer-btn.capture {
+      background: #000 !important;
+      color: #fff !important;
+      border-color: #fff !important;
     }
   </style>
   <script async src="https://docs.opencv.org/4.x/opencv.js" onload="window.cvReady=true"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.4/dist/tesseract.min.js"></script>
 </head>
 <body>
-  <div class="fixed-header">Sewadar Document Scanner</div>
+  <div class="fixed-header" aria-label="App Header" role="banner">Document Scanner</div>
     <div class="scanner-card">
       <div style="display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;height:100%;width:100%;">
-        <video id="video" class="scanner-video" autoplay playsinline muted></video>
-        <svg id="videoOverlay" class="video-overlay"></svg>
-        <canvas id="workCanvas" hidden></canvas>
+  <video id="video" class="scanner-video" autoplay playsinline muted></video>
+  <svg id="videoOverlay" class="video-overlay"></svg>
+  <canvas id="workCanvas" hidden></canvas>
         <div id="thumbs" class="thumbs" style="display:flex;flex-wrap:wrap;justify-content:center;margin-top:10px;"></div>
+  <div id="ocrResult" style="display:none;background:#23283a;color:#fff;padding:12px 18px;border-radius:12px;margin:10px auto;max-width:420px;word-break:break-word;"></div>
         <div style="text-align:center;color:#a3a8b8;font-size:.98rem;margin-top:8px;">Swipe scans below. Tap to crop & save.</div>
       </div>
     </div>
@@ -230,12 +290,17 @@
     <div class="footer-menu">
       <div style="display: flex; gap: 0; align-items: center;">
         <select id="cameraSelect" title="Choose camera" class="footer-btn" style="width:38px;height:38px;font-size:0.9rem;padding:0 4px;background:#23283a;color:#fff;border:none;border-radius:50%;margin-right:2px;"></select>
+  <label for="cameraSelect" style="display:none;">Choose camera</label>
         <button class="footer-btn" id="btnTorch" title="Toggle Torch"><i class="fas fa-bolt"></i></button>
+  <span class="sr-only">Toggle Torch</span>
       </div>
       <button class="footer-btn capture" id="btnCapture" title="Capture"><i class="fas fa-camera"></i></button>
+  <span class="sr-only">Capture Document</span>
       <div style="display: flex; gap: 0; align-items: center;">
-        <button class="footer-btn" id="btnSavePDF" title="Save as PDF"><i class="fas fa-file-pdf"></i></button>
-        <button class="footer-btn" id="btnClear" title="Clear Gallery"><i class="fas fa-trash"></i></button>
+  <button class="footer-btn" id="btnSavePDF" title="Save as PDF"><i class="fas fa-file-pdf"></i></button>
+  <span class="sr-only">Save as PDF</span>
+  <button class="footer-btn" id="btnClear" title="Clear Gallery"><i class="fas fa-trash"></i></button>
+  <span class="sr-only">Clear Gallery</span>
       </div>
     </div>
   </div>
@@ -251,21 +316,26 @@
   </div>
   <script>
     window.addEventListener('DOMContentLoaded', async () => {
-      let video = document.getElementById('video');
-      let canvas = document.getElementById('workCanvas');
-      let thumbs = document.getElementById('thumbs');
-      let cameraSelect = document.getElementById('cameraSelect');
-      let btnCapture = document.getElementById('btnCapture');
-      let btnTorch = document.getElementById('btnTorch');
-      let btnSavePDF = document.getElementById('btnSavePDF');
-      let btnClear = document.getElementById('btnClear');
-      let cropperModal = document.getElementById('cropperModal');
-      let cropperImg = document.getElementById('cropperImg');
-      let cropper = null;
-      let scans = [];
-      let stream = null;
-      let track = null;
-      let torchOn = false;
+  let video = document.getElementById('video');
+  let canvas = document.getElementById('workCanvas');
+  let thumbs = document.getElementById('thumbs');
+  let cameraSelect = document.getElementById('cameraSelect');
+  let btnCapture = document.getElementById('btnCapture');
+  let btnTorch = document.getElementById('btnTorch');
+  let btnClear = document.getElementById('btnClear');
+  let cropperModal = document.getElementById('cropperModal');
+  let cropperImg = document.getElementById('cropperImg');
+  let cropper = null;
+  let scans = [];
+  // Load scans from localStorage for offline support
+  if (localStorage.getItem('scans')) {
+    try {
+      scans = JSON.parse(localStorage.getItem('scans')) || [];
+    } catch (e) { scans = []; }
+  }
+  let stream = null;
+  let track = null;
+  let torchOn = false;
 
       async function listCameras() {
         const devices = await navigator.mediaDevices.enumerateDevices();
@@ -310,13 +380,13 @@
         let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         if (window.cvReady && window.cv) {
           let src = cv.matFromImageData(imgData);
-          let dst = new cv.Mat();
-          cv.cvtColor(src, dst, cv.COLOR_RGBA2GRAY);
-          cv.GaussianBlur(dst, dst, new cv.Size(5,5), 0, 0, cv.BORDER_DEFAULT);
-          cv.Canny(dst, dst, 50, 150);
+          let gray = new cv.Mat();
+          cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+          cv.GaussianBlur(gray, gray, new cv.Size(5,5), 0, 0, cv.BORDER_DEFAULT);
+          cv.Canny(gray, gray, 50, 150);
           let contours = new cv.MatVector();
           let hierarchy = new cv.Mat();
-          cv.findContours(dst, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+          cv.findContours(gray, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
           let maxArea = 0, maxContour = null;
           for (let i = 0; i < contours.size(); i++) {
             let cnt = contours.get(i);
@@ -326,18 +396,59 @@
               maxContour = cnt;
             }
           }
+          let dataUrl;
+          let docMat = src;
           if (maxContour && maxArea > 10000) {
-            let rect = cv.boundingRect(maxContour);
-            let cropCanvas = document.createElement('canvas');
-            cropCanvas.width = rect.width;
-            cropCanvas.height = rect.height;
-            cropCanvas.getContext('2d').drawImage(canvas, rect.x, rect.y, rect.width, rect.height, 0, 0, rect.width, rect.height);
-            let dataUrl = cropCanvas.toDataURL('image/png');
-            scans.push(dataUrl);
-          } else {
-            scans.push(canvas.toDataURL('image/png'));
+            let peri = cv.arcLength(maxContour, true);
+            let approx = new cv.Mat();
+            cv.approxPolyDP(maxContour, approx, 0.02 * peri, true);
+            if (approx.rows === 4) {
+              let pts = [];
+              for (let i = 0; i < 4; i++) {
+                pts.push({ x: approx.intPtr(i, 0)[0], y: approx.intPtr(i, 0)[1] });
+              }
+              pts.sort((a, b) => a.y - b.y);
+              let tl = pts[0].x < pts[1].x ? pts[0] : pts[1];
+              let tr = pts[0].x > pts[1].x ? pts[0] : pts[1];
+              let bl = pts[2].x < pts[3].x ? pts[2] : pts[3];
+              let br = pts[2].x > pts[3].x ? pts[2] : pts[3];
+              let widthA = Math.hypot(br.x - bl.x, br.y - bl.y);
+              let widthB = Math.hypot(tr.x - tl.x, tr.y - tl.y);
+              let maxWidth = Math.max(widthA, widthB);
+              let heightA = Math.hypot(tr.x - br.x, tr.y - br.y);
+              let heightB = Math.hypot(tl.x - bl.x, tl.y - bl.y);
+              let maxHeight = Math.max(heightA, heightB);
+              let srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, [tl.x, tl.y, tr.x, tr.y, br.x, br.y, bl.x, bl.y]);
+              let dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [0, 0, maxWidth-1, 0, maxWidth-1, maxHeight-1, 0, maxHeight-1]);
+              let M = cv.getPerspectiveTransform(srcTri, dstTri);
+              let dst = new cv.Mat();
+              cv.warpPerspective(src, dst, M, new cv.Size(maxWidth, maxHeight));
+              docMat = dst;
+              src.delete(); M.delete(); srcTri.delete(); dstTri.delete();
+            } else {
+              let rect = cv.boundingRect(maxContour);
+              let cropCanvas = document.createElement('canvas');
+              cropCanvas.width = rect.width;
+              cropCanvas.height = rect.height;
+              cropCanvas.getContext('2d').drawImage(canvas, rect.x, rect.y, rect.width, rect.height, 0, 0, rect.width, rect.height);
+              dataUrl = cropCanvas.toDataURL('image/png');
+              docMat = null;
+            }
+            approx.delete();
           }
-          src.delete(); dst.delete(); contours.delete(); hierarchy.delete();
+          // No enhancement logic
+          if (docMat) {
+            let cropCanvas = document.createElement('canvas');
+            cropCanvas.width = docMat.cols;
+            cropCanvas.height = docMat.rows;
+            let cropCtx = cropCanvas.getContext('2d');
+            let imgData = new ImageData(new Uint8ClampedArray(docMat.data), docMat.cols, docMat.rows);
+            cropCtx.putImageData(imgData, 0, 0);
+            dataUrl = cropCanvas.toDataURL('image/png');
+            if (docMat !== src) docMat.delete();
+          }
+          scans.push(dataUrl);
+          gray.delete(); contours.delete(); hierarchy.delete();
         } else {
           scans.push(canvas.toDataURL('image/png'));
         }
@@ -346,24 +457,133 @@
 
       function renderThumbs() {
         thumbs.innerHTML = '';
+        localStorage.setItem('scans', JSON.stringify(scans));
         scans.forEach((src, idx) => {
+          let thumbDiv = document.createElement('div');
+          thumbDiv.style.position = 'relative';
+          thumbDiv.style.display = 'inline-block';
+          thumbDiv.style.margin = '6px';
+          thumbDiv.style.opacity = 0;
+          setTimeout(() => thumbDiv.style.opacity = 1, 50 * idx);
           let img = document.createElement('img');
           img.src = src;
           img.style.width = '80px';
           img.style.height = '80px';
           img.style.objectFit = 'cover';
-          img.style.margin = '6px';
           img.style.borderRadius = '10px';
           img.style.cursor = 'pointer';
           img.onclick = () => openCropper(idx);
-          thumbs.appendChild(img);
+          // OCR button
+          let ocrBtn = document.createElement('button');
+          ocrBtn.innerHTML = '<i class="fas fa-font"></i>';
+          ocrBtn.title = 'Extract Text';
+          ocrBtn.style.position = 'absolute';
+          ocrBtn.style.left = '2px';
+          ocrBtn.style.top = '28px';
+          ocrBtn.style.background = '#00c853';
+          ocrBtn.style.color = '#fff';
+          ocrBtn.style.border = 'none';
+          ocrBtn.style.borderRadius = '50%';
+          ocrBtn.style.width = '22px';
+          ocrBtn.style.height = '22px';
+          ocrBtn.style.fontSize = '1rem';
+          ocrBtn.style.cursor = 'pointer';
+          ocrBtn.onclick = (e) => {
+            e.stopPropagation();
+            document.getElementById('ocrResult').style.display = 'block';
+            document.getElementById('ocrResult').textContent = 'Extracting text...';
+            // OCR result caching
+            Tesseract.recognize(scans[idx], 'eng', { logger: m => {} })
+              .then(({ data: { text } }) => {
+                document.getElementById('ocrResult').textContent = text || 'No text found.';
+                let ocrs = {};
+                if (localStorage.getItem('ocrResults')) {
+                  try { ocrs = JSON.parse(localStorage.getItem('ocrResults')) || {}; } catch (e) { ocrs = {}; }
+                }
+                ocrs[idx] = text;
+                localStorage.setItem('ocrResults', JSON.stringify(ocrs));
+              });
+          };
+          thumbDiv.appendChild(ocrBtn);
+          thumbDiv.appendChild(img);
+          // Delete button
+          let delBtn = document.createElement('button');
+          delBtn.innerHTML = '<i class="fas fa-times"></i>';
+          delBtn.title = 'Delete';
+          delBtn.style.position = 'absolute';
+          delBtn.style.top = '2px';
+          delBtn.style.right = '2px';
+          delBtn.style.background = '#d32f2f';
+          delBtn.style.color = '#fff';
+          delBtn.style.border = 'none';
+          delBtn.style.borderRadius = '50%';
+          delBtn.style.width = '22px';
+          delBtn.style.height = '22px';
+          delBtn.style.fontSize = '1rem';
+          delBtn.style.cursor = 'pointer';
+          delBtn.onclick = (e) => {
+            e.stopPropagation();
+            scans.splice(idx, 1);
+            renderThumbs();
+          };
+          thumbDiv.appendChild(delBtn);
+          // Reorder buttons
+          if (idx > 0) {
+            let upBtn = document.createElement('button');
+            upBtn.innerHTML = '<i class="fas fa-arrow-up"></i>';
+            upBtn.title = 'Move Up';
+            upBtn.style.position = 'absolute';
+            upBtn.style.left = '2px';
+            upBtn.style.top = '2px';
+            upBtn.style.background = '#4f8cff';
+            upBtn.style.color = '#fff';
+            upBtn.style.border = 'none';
+            upBtn.style.borderRadius = '50%';
+            upBtn.style.width = '22px';
+            upBtn.style.height = '22px';
+            upBtn.style.fontSize = '1rem';
+            upBtn.style.cursor = 'pointer';
+            upBtn.onclick = (e) => {
+              e.stopPropagation();
+              let temp = scans[idx-1];
+              scans[idx-1] = scans[idx];
+              scans[idx] = temp;
+              renderThumbs();
+            };
+            thumbDiv.appendChild(upBtn);
+          }
+          if (idx < scans.length - 1) {
+            let downBtn = document.createElement('button');
+            downBtn.innerHTML = '<i class="fas fa-arrow-down"></i>';
+            downBtn.title = 'Move Down';
+            downBtn.style.position = 'absolute';
+            downBtn.style.left = '2px';
+            downBtn.style.bottom = '2px';
+            downBtn.style.background = '#4f8cff';
+            downBtn.style.color = '#fff';
+            downBtn.style.border = 'none';
+            downBtn.style.borderRadius = '50%';
+            downBtn.style.width = '22px';
+            downBtn.style.height = '22px';
+            downBtn.style.fontSize = '1rem';
+            downBtn.style.cursor = 'pointer';
+            downBtn.onclick = (e) => {
+              e.stopPropagation();
+              let temp = scans[idx+1];
+              scans[idx+1] = scans[idx];
+              scans[idx] = temp;
+              renderThumbs();
+            };
+            thumbDiv.appendChild(downBtn);
+          }
+          thumbs.appendChild(thumbDiv);
         });
       }
 
       function openCropper(idx) {
         cropperModal.style.display = '';
         document.body.style.overflow = 'hidden'; // Prevent background scroll
-        document.querySelector('.scanner-area').style.filter = 'blur(2px)'; // Blur background
+        document.querySelector('.scanner-card').style.filter = 'blur(2px)'; // Blur background
         cropperImg.src = scans[idx];
         cropper = new Cropper(cropperImg, {
           viewMode: 1,
@@ -377,11 +597,11 @@
       }
 
       window.closeCropper = function() {
-        cropperModal.style.display = 'none';
-        document.body.style.overflow = '';
-        document.querySelector('.scanner-area').style.filter = '';
-        if (cropper) cropper.destroy();
-        cropper = null;
+  cropperModal.style.display = 'none';
+  document.body.style.overflow = '';
+  document.querySelector('.scanner-card').style.filter = '';
+  if (cropper) cropper.destroy();
+  cropper = null;
       }
 
       window.saveCrop = function() {
@@ -425,8 +645,10 @@
         })();
       });
 
+
       btnClear.addEventListener('click', () => {
         scans = [];
+        localStorage.removeItem('scans');
         renderThumbs();
       });
 
