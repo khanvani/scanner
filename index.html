@@ -1,12 +1,11 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Document Scanner — HD + Auto Detect (OpenCV)</title>
-  <!-- Material UI CDN -->
+  <title>ScanPro - Document Scanner</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mui/material@5.15.14/dist/material.min.css">
-  <!-- Cropper.js CDN -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
   <style>
     body { background: #f5f6fa; color: #222; font-family: 'Roboto', Arial, sans-serif; }
@@ -26,8 +25,8 @@
     .cropper-box { background: #fff; border-radius: 16px; padding: 18px; max-width: 98vw; max-height: 90vh; }
     .cropper-img { max-width: 90vw; max-height: 70vh; display: block; margin: auto; border-radius: 12px; }
   </style>
-  <!-- OpenCV.js for robust corner detection -->
   <script async src="https://docs.opencv.org/4.x/opencv.js" onload="window.cvReady=true"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
@@ -84,223 +83,201 @@
     </div>
   </div>
 </div>
-
 <script>
-(()=>{
-  const $ = (s)=>document.querySelector(s);
-  const video = $('#video');
-  const workCanvas = $('#workCanvas');
-  const thumbs = $('#thumbs');
-  const captureBtn = $('#captureBtn');
-  const saveAllBtn = $('#saveAllBtn');
-  const saveFolderBtn = $('#saveFolderBtn');
-  const savePdfBtn = $('#savePdfBtn');
-  const clearAllBtn = $('#clearAllBtn');
-  const torchBtn = $('#torchBtn');
-  const cameraSelect = $('#cameraSelect');
-  const refreshBtn = $('#refreshBtn');
-  // ...existing code...
-  function renderThumbs() {
-    thumbs.innerHTML = '';
-    pages.forEach((page, idx) => {
-      const div = document.createElement('div');
-      div.className = 'thumb';
-      div.innerHTML = `<img src="${page.dataUrl}"/><button class='mui-btn mui-btn--primary' onclick='openCropper(${idx})'>Edit</button>`;
-      thumbs.appendChild(div);
-    });
-  }
+// Utility
+const $ = (s)=>document.querySelector(s);
+const video = $('#video');
+const workCanvas = $('#workCanvas');
+const thumbs = $('#thumbs');
+const captureBtn = $('#captureBtn');
+const saveAllBtn = $('#saveAllBtn');
+const saveFolderBtn = $('#saveFolderBtn');
+const savePdfBtn = $('#savePdfBtn');
+const clearAllBtn = $('#clearAllBtn');
+const torchBtn = $('#torchBtn');
+const cameraSelect = $('#cameraSelect');
+const refreshBtn = $('#refreshBtn');
+const supportBadge = $('#supportBadge');
+const cvBadge = $('#cvBadge');
+let mediaStream=null, track=null;
+let pages=[];
+let cropper = null;
 
+// Camera
+async function listCameras(){
+  const devs = await navigator.mediaDevices.enumerateDevices();
+  const cams = devs.filter(d=>d.kind==='videoinput');
+  cameraSelect.innerHTML='';
+  cams.forEach((d,i)=>{
+    const o=document.createElement('option');o.value=d.deviceId;o.textContent=d.label||`Camera ${i+1}`;cameraSelect.appendChild(o);
+  });
+  const back=cams.find(c=>/back|rear|environment/i.test(c.label));
+  if(back) cameraSelect.value=back.deviceId;
+}
+async function startCamera(deviceId){
+  if(mediaStream){mediaStream.getTracks().forEach(t=>t.stop());mediaStream=null;track=null}
+  const constraints = deviceId?{video:{deviceId:{exact:deviceId}, width:{ideal:2560}, height:{ideal:1440}}}:{video:{facingMode:'environment', width:{ideal:2560}, height:{ideal:1440}}};
+  try{
+    mediaStream=await navigator.mediaDevices.getUserMedia(constraints);
+    video.srcObject=mediaStream;track=mediaStream.getVideoTracks()[0];
+  }catch(e){alert('Camera error: '+e.message)}
+}
 
-  // ——— Perspective math ———
-  function computeHomography(src, dst){
-    const A=[];
-    for(let i=0;i<4;i++){
-      const {x:x1,y:y1}=src[i]; const {x:x2,y:y2}=dst[i];
-      A.push([ x1, y1, 1, 0, 0, 0, -x2*x1, -x2*y1, x2 ]);
-      A.push([ 0, 0, 0, x1, y1, 1, -y2*x1, -y2*y1, y2 ]);
-    }
-    const M=A.map(r=>r.slice());
-    const rows=8, cols=9;
-    let r=0;
-    for(let c=0;c<8 && r<rows;c++){
-      let piv=r; for(let i=r;i<rows;i++){ if(Math.abs(M[i][c])>Math.abs(M[piv][c])) piv=i }
-      if(Math.abs(M[piv][c])<1e-10) continue;
-      [M[r],M[piv]]=[M[piv],M[r]];
-      const div=M[r][c]; for(let j=c;j<cols;j++) M[r][j]/=div;
-      for(let i=0;i<rows;i++) if(i!==r){ const f=M[i][c]; for(let j=c;j<cols;j++) M[i][j]-=f*M[r][j]; }
-      r++;
-    }
-    const h=[M[0][8],M[1][8],M[2][8],M[3][8],M[4][8],M[5][8],M[6][8],M[7][8],1];
-    return h;
-  }
-  function applyHomography(H, x, y){
-    const a=H; const X=a[0]*x + a[1]*y + a[2]; const Y=a[3]*x + a[4]*y + a[5]; const W=a[6]*x + a[7]*y + a[8];
-    return {x:X/W, y:Y/W};
-  }
+// OpenCV
+function waitForCV(){
+  return new Promise((res)=>{
+    const iv=setInterval(()=>{
+      if(window.cv && window.cv.Mat){clearInterval(iv); cvBadge.textContent='OpenCV ✅'; res();}
+    },80);
+    setTimeout(()=>{cvBadge.textContent='OpenCV ⚠️';},4000);
+  });
+}
 
-  function warpPerspective(srcImg, quad, outW, outH){
-    const dst=[{x:0,y:0},{x:outW-1,y:0},{x:outW-1,y:outH-1},{x:0,y:outH-1}];
-    const H = computeHomography(dst, quad); // map dest->src
-    const srcCanvas=document.createElement('canvas');
-    srcCanvas.width=srcImg.naturalWidth; srcCanvas.height=srcImg.naturalHeight;
-    const sctx=srcCanvas.getContext('2d'); sctx.drawImage(srcImg,0,0);
-    const sData=sctx.getImageData(0,0,srcCanvas.width,srcCanvas.height);
-    const sw=srcCanvas.width, sh=srcCanvas.height; const sPix=sData.data;
-
-    const out=document.createElement('canvas'); out.width=outW; out.height=outH; const octx=out.getContext('2d');
-    const oData=octx.createImageData(outW,outH); const oPix=oData.data;
-
-    function sample(u,v){
-      if(u<0||v<0||u>=sw-1||v>=sh-1){return [255,255,255,255]}
-      const x=Math.floor(u), y=Math.floor(v);
-      const dx=u-x, dy=v-y;
-      const idx=(yy,xx)=>((yy*sw+xx)<<2);
-      const i00=idx(y,x), i10=idx(y,x+1), i01=idx(y+1,x), i11=idx(y+1,x+1);
-      const r= (1-dy)*((1-dx)*sPix[i00] + dx*sPix[i10]) + dy*((1-dx)*sPix[i01] + dx*sPix[i11]);
-      const g= (1-dy)*((1-dx)*sPix[i00+1] + dx*sPix[i10+1]) + dy*((1-dx)*sPix[i01+1] + dx*sPix[i11+1]);
-      const b= (1-dy)*((1-dx)*sPix[i00+2] + dx*sPix[i10+2]) + dy*((1-dx)*sPix[i01+2] + dx*sPix[i11+2]);
-      const a= (1-dy)*((1-dx)*sPix[i00+3] + dx*sPix[i10+3]) + dy*((1-dx)*sPix[i01+3] + dx*sPix[i11+3]);
-      return [r,g,b,a];
-    }
-
-    for(let y=0;y<outH;y++){
-      for(let x=0;x<outW;x++){
-        const srcP=applyHomography(H,x,y);
-        const [r,g,b,a]=sample(srcP.x,srcP.y);
-        const i=(y*outW + x)<<2; oPix[i]=r; oPix[i+1]=g; oPix[i+2]=b; oPix[i+3]=a;
-      }
-    }
-    octx.putImageData(oData,0,0);
-    return out;
-  }
-
-  function enhanceCanvas(canvas){
-    if(!$('#enhanceToggle').checked) return canvas;
-    const ctx=canvas.getContext('2d');
-    const img=ctx.getImageData(0,0,canvas.width,canvas.height);
-    const d=img.data; // simple contrast + slight sharpen
-    // contrast
-    const c=1.15, t=128*(1-c);
-    for(let i=0;i<d.length;i+=4){ d[i]=d[i]*c + t; d[i+1]=d[i+1]*c + t; d[i+2]=d[i+2]*c + t; }
-    // unsharp mask lite
-    const tmp=document.createElement('canvas'); tmp.width=canvas.width; tmp.height=canvas.height;
-    const tctx=tmp.getContext('2d'); tctx.filter='blur(1.2px)'; tctx.drawImage(canvas,0,0); const blur=tctx.getImageData(0,0,tmp.width,tmp.height);
-    const bd=blur.data; const amt=0.6;
-    for(let i=0;i<d.length;i+=4){ d[i]=d[i]+amt*(d[i]-bd[i]); d[i+1]=d[i+1]+amt*(d[i+1]-bd[i+1]); d[i+2]=d[i+2]+amt*(d[i+2]-bd[i+2]); }
-    ctx.putImageData(img,0,0);
-    return canvas;
-  }
-
-  applyEdit.onclick=async ()=>{
-    if(editIndex<0) return;
-    const quad = quadToImage(); // TL,TR,BR,BL
-    const wTop = Math.hypot(quad[1].x-quad[0].x, quad[1].y-quad[0].y);
-    const wBot = Math.hypot(quad[2].x-quad[3].x, quad[2].y-quad[3].y);
-    const hLeft = Math.hypot(quad[3].x-quad[0].x, quad[3].y-quad[0].y);
-    const hRight= Math.hypot(quad[2].x-quad[1].x, quad[2].y-quad[1].y);
-    const estW = Math.max(wTop,wBot), estH=Math.max(hLeft,hRight);
-    const maxSide = 2400; // higher cap for sharper output
-    let outW, outH; if(estW>=estH){ outW=Math.min(maxSide, Math.round(estW)); outH=Math.round(outW*(estH/estW)); } else { outH=Math.min(maxSide, Math.round(estH)); outW=Math.round(outH*(estW/estH)); }
-
-    const img=new Image(); img.src=pages[editIndex].dataUrl; await img.decode();
-    let warped=warpPerspective(img, quad, outW, outH);
-    warped=enhanceCanvas(warped);
-
-    const dataUrl=warped.toDataURL('image/jpeg',0.95);
-    pages[editIndex]={dataUrl,w:outW,h:outH,quad:quad};
-    overlay.classList.remove('open');
-    renderThumbs();
-  }
-
-  // Save flows
-  saveAllBtn.onclick=()=>{
-    if(!pages.length) return alert('No pages');
-    pages.forEach((p,i)=>{ const a=document.createElement('a'); a.href=p.dataUrl; a.download=`scan_${ts()}_${String(i+1).padStart(2,'0')}.jpg`; document.body.appendChild(a); a.click(); a.remove(); })
-  }
-  saveFolderBtn.onclick=async()=>{
-    if(!pages.length) return alert('No pages'); if(!hasFS) return alert('Your browser does not support File System Access API.');
-    const dir=await window.showDirectoryPicker({mode:'readwrite'});
-    for(let i=0;i<pages.length;i++){
-      const fh=await dir.getFileHandle(`scan_${ts()}_${String(i+1).padStart(2,'0')}.jpg`,{create:true});
-      const w=await fh.createWritable(); const res=await fetch(pages[i].dataUrl); await w.write(await res.blob()); await w.close();
-    }
-    alert('Saved to selected folder');
-  }
-  savePdfBtn.onclick=()=>{
-    if(!pages.length) return alert('No pages');
-    const { jsPDF } = window.jspdf; const pdf=new jsPDF({unit:'pt', format:'a4'});
-    pages.forEach((p,i)=>{
-      if(i>0) pdf.addPage();
-      const pageW=pdf.internal.pageSize.getWidth(); const pageH=pdf.internal.pageSize.getHeight();
-      const r=Math.min(pageW/p.w, pageH/p.h); const w=p.w*r, h=p.h*r; const x=(pageW-w)/2, y=(pageH-h)/2;
-      pdf.addImage(p.dataUrl,'JPEG',x,y,w,h);
-    });
-    pdf.save('scans.pdf');
-  }
-  clearAllBtn.onclick=()=>{pages=[]; renderThumbs()}
-
-  torchBtn.onclick=async()=>{
-    if(!track) return alert('No camera');
-    const caps=track.getCapabilities?track.getCapabilities():{}; if(!('torch' in caps)) return alert('Torch not supported on this device');
-    const settings=track.getSettings(); const cur=settings.torch||false; try{ await track.applyConstraints({advanced:[{torch:!cur}]}); }catch(e){ alert('Torch toggle failed: '+e.message) }
-  }
-
-  cameraSelect.addEventListener('change',()=>startCamera(cameraSelect.value));
-  refreshBtn.addEventListener('click',async()=>{await listCameras(); await startCamera(cameraSelect.value||undefined)});
-  captureBtn.addEventListener('click',capture);
-
-  // —— OpenCV corner detection ——
-  async function detectCornersOpenCV(page){
+// Capture
+async function capture(){
+  const settings = track?.getSettings?.()||{};
+  const vw = settings.width || video.videoWidth;
+  const vh = settings.height || video.videoHeight;
+  if(!vw||!vh){alert('Video not ready');return}
+  workCanvas.width=vw; workCanvas.height=vh; const ctx=workCanvas.getContext('2d',{alpha:false});
+  ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high';
+  ctx.drawImage(video,0,0,vw,vh);
+  const dataUrl=workCanvas.toDataURL('image/jpeg',0.95);
+  const page={dataUrl,w:vw,h:vh};
+  try{
     await waitForCV();
-    // draw the full-res image into a canvas to get ImageData
-    const c=document.createElement('canvas'); c.width=page.w; c.height=page.h;
-    const ctx=c.getContext('2d'); const img=new Image(); img.src=page.dataUrl; await img.decode(); ctx.drawImage(img,0,0);
-    const imgData=ctx.getImageData(0,0,c.width,c.height);
+    const quad = await detectCornersOpenCV({dataUrl,w:vw,h:vh});
+    if(quad) page.quad = quad;
+  }catch(e){console.warn('Auto-detect failed', e)}
+  pages.push(page);
+  renderThumbs();
+}
 
-    // Build Mats
-    const src=cv.matFromImageData(imgData);
-    const gray=new cv.Mat(); cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-    const blur=new cv.Mat(); cv.GaussianBlur(gray, blur, new cv.Size(7,7), 0);
-    const edges=new cv.Mat(); cv.Canny(blur, edges, 30, 120);
+// Cropper.js integration
+function openCropper(pageIdx) {
+  const page = pages[pageIdx];
+  const img = document.getElementById('cropperImg');
+  img.src = page.dataUrl;
+  document.getElementById('cropperModal').style.display = 'flex';
+  setTimeout(() => {
+    cropper = new Cropper(img, {
+      viewMode: 1,
+      autoCropArea: 1,
+      movable: true,
+      zoomable: true,
+      rotatable: false,
+      scalable: false,
+      responsive: true,
+      background: false
+    });
+  }, 100);
+  cropperModal.dataset.pageIdx = pageIdx;
+}
+function closeCropper() {
+  document.getElementById('cropperModal').style.display = 'none';
+  if (cropper) { cropper.destroy(); cropper = null; }
+}
+function saveCrop() {
+  if (!cropper) return;
+  const pageIdx = cropperModal.dataset.pageIdx;
+  const canvas = cropper.getCroppedCanvas({ imageSmoothingEnabled: true, imageSmoothingQuality: 'high' });
+  pages[pageIdx].dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+  closeCropper();
+  renderThumbs();
+}
 
-    // Dilate slightly to close gaps
-    const kernel=cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(5,5));
-    cv.dilate(edges, edges, kernel);
+function renderThumbs() {
+  thumbs.innerHTML = '';
+  pages.forEach((page, idx) => {
+    const div = document.createElement('div');
+    div.className = 'thumb';
+    div.innerHTML = `<img src="${page.dataUrl}"/><button class='mui-btn mui-btn--primary' onclick='openCropper(${idx})'>Edit</button>`;
+    thumbs.appendChild(div);
+  });
+}
 
-    const contours=new cv.MatVector(); const hierarchy=new cv.Mat();
-    cv.findContours(edges, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
-
-    let best=null, bestArea=0;
-    for(let i=0;i<contours.size();i++){
-      const cnt=contours.get(i);
-      const peri=cv.arcLength(cnt,true);
-      const approx=new cv.Mat(); cv.approxPolyDP(cnt, approx, 0.018*peri, true);
-      if(approx.rows===4){
-        const area=cv.contourArea(approx);
-        if(area>bestArea){ bestArea=area; best=approx; }
-      }
-      approx.delete(); cnt.delete();
-    }
-
-    let quad=null;
-    if(best){
-      // extract points
-      const pts=[]; for(let i=0;i<4;i++){ const p=best.intPtr(i); pts.push({x:p[0], y:p[1]}); }
-      // order as TL,TR,BR,BL
-      pts.sort((a,b)=>a.y-b.y); // top two first
-      const top=pts.slice(0,2).sort((a,b)=>a.x-b.x);
-      const bot=pts.slice(2,4).sort((a,b)=>a.x-b.x);
-      quad=[top[0], top[1], bot[1], bot[0]];
-    }
-
-    // cleanup
-    src.delete(); gray.delete(); blur.delete(); edges.delete(); kernel.delete(); contours.delete(); hierarchy.delete();
-
-    return quad; // may be null
+// Save flows
+saveAllBtn.onclick=()=>{
+  if(!pages.length) return alert('No pages');
+  pages.forEach((p,i)=>{ const a=document.createElement('a'); a.href=p.dataUrl; a.download=`scan_${ts()}_${String(i+1).padStart(2,'0')}.jpg`; document.body.appendChild(a); a.click(); a.remove(); })
+}
+saveFolderBtn.onclick=async()=>{
+  if(!pages.length) return alert('No pages'); if(!window.showDirectoryPicker) return alert('Your browser does not support File System Access API.');
+  const dir=await window.showDirectoryPicker({mode:'readwrite'});
+  for(let i=0;i<pages.length;i++){
+    const fh=await dir.getFileHandle(`scan_${ts()}_${String(i+1).padStart(2,'0')}.jpg`,{create:true});
+    const w=await fh.createWritable(); const res=await fetch(pages[i].dataUrl); await w.write(await res.blob()); await w.close();
   }
+  alert('Saved to selected folder');
+}
+savePdfBtn.onclick=()=>{
+  if(!pages.length) return alert('No pages');
+  const { jsPDF } = window.jspdf; const pdf=new jsPDF({unit:'pt', format:'a4'});
+  pages.forEach((p,i)=>{
+    if(i>0) pdf.addPage();
+    const pageW=pdf.internal.pageSize.getWidth(); const pageH=pdf.internal.pageSize.getHeight();
+    const r=Math.min(pageW/p.w, pageH/p.h); const w=p.w*r, h=p.h*r; const x=(pageW-w)/2, y=(pageH-h)/2;
+    pdf.addImage(p.dataUrl,'JPEG',x,y,w,h);
+  });
+  pdf.save('scans.pdf');
+}
+clearAllBtn.onclick=()=>{pages=[]; renderThumbs()}
 
-  // Boot
-  (async()=>{ try{ await startCamera(); await listCameras(); if(cameraSelect.value) await startCamera(cameraSelect.value);}catch(e){console.error(e)} })();
+torchBtn.onclick=async()=>{
+  if(!track) return alert('No camera');
+  const caps=track.getCapabilities?track.getCapabilities():{}; if(!('torch' in caps)) return alert('Torch not supported on this device');
+  const settings=track.getSettings(); const cur=settings.torch||false; try{ await track.applyConstraints({advanced:[{torch:!cur}]}); }catch(e){ alert('Torch toggle failed: '+e.message) }
+}
+
+cameraSelect.addEventListener('change',()=>startCamera(cameraSelect.value));
+refreshBtn.addEventListener('click',async()=>{await listCameras(); await startCamera(cameraSelect.value||undefined)});
+captureBtn.addEventListener('click',capture);
+
+// OpenCV corner detection
+async function detectCornersOpenCV(page){
+  await waitForCV();
+  const c=document.createElement('canvas'); c.width=page.w; c.height=page.h;
+  const ctx=c.getContext('2d'); const img=new Image(); img.src=page.dataUrl; await img.decode(); ctx.drawImage(img,0,0);
+  const imgData=ctx.getImageData(0,0,c.width,c.height);
+  const src=cv.matFromImageData(imgData);
+  const gray=new cv.Mat(); cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+  const blur=new cv.Mat(); cv.GaussianBlur(gray, blur, new cv.Size(7,7), 0);
+  const edges=new cv.Mat(); cv.Canny(blur, edges, 30, 120);
+  const kernel=cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(5,5));
+  cv.dilate(edges, edges, kernel);
+  const contours=new cv.MatVector(); const hierarchy=new cv.Mat();
+  cv.findContours(edges, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+  let best=null, bestArea=0;
+  for(let i=0;i<contours.size();i++){
+    const cnt=contours.get(i);
+    const peri=cv.arcLength(cnt,true);
+    const approx=new cv.Mat(); cv.approxPolyDP(cnt, approx, 0.018*peri, true);
+    if(approx.rows===4){
+      const area=cv.contourArea(approx);
+      if(area>bestArea){ bestArea=area; best=approx; }
+    }
+    approx.delete(); cnt.delete();
+  }
+  let quad=null;
+  if(best){
+    const pts=[]; for(let i=0;i<4;i++){ const p=best.intPtr(i); pts.push({x:p[0], y:p[1]}); }
+    pts.sort((a,b)=>a.y-b.y);
+    const top=pts.slice(0,2).sort((a,b)=>a.x-b.x);
+    const bot=pts.slice(2,4).sort((a,b)=>a.x-b.x);
+    quad=[top[0], top[1], bot[1], bot[0]];
+  }
+  src.delete(); gray.delete(); blur.delete(); edges.delete(); kernel.delete(); contours.delete(); hierarchy.delete();
+  return quad;
+}
+
+function ts(){const d=new Date();return d.toISOString().replace(/[:.]/g,'-')}
+
+// Initial load
+window.addEventListener('DOMContentLoaded', async () => {
+  supportBadge.textContent = `FSAccess ${window.showDirectoryPicker?'✅':'❌'}`;
+  await listCameras();
+  await startCamera(cameraSelect.value||undefined);
+});
 </script>
 </body>
 </html>
