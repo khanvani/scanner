@@ -8,18 +8,25 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mui/material@5.15.14/dist/material.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
   <style>
-    body { background: #f5f6fa; color: #222; font-family: 'Roboto', Arial, sans-serif; }
-    .mui-container { max-width: 900px; margin: auto; padding: 16px; }
-    .mui-card { margin-bottom: 18px; }
-    .mui-btn { min-width: 120px; margin: 6px 0; }
-    .scanner-video { width: 100%; border-radius: 12px; background: #000; }
-    .thumbs { display: flex; flex-wrap: wrap; gap: 12px; }
-    .thumb { border-radius: 12px; overflow: hidden; border: 1px solid #ddd; width: 110px; height: 140px; position: relative; }
+    body { background: #f7f8fa; color: #222; font-family: 'Inter', 'Roboto', Arial, sans-serif; }
+    .container { max-width: 420px; margin: auto; padding: 0 0 32px 0; }
+    .header { text-align: center; padding: 32px 0 12px 0; }
+    .header h1 { font-size: 2.1rem; font-weight: 700; color: #2563eb; margin: 0; }
+    .header p { color: #64748b; margin: 8px 0 0 0; font-size: 1.1rem; }
+    .card { background: #fff; border-radius: 18px; box-shadow: 0 2px 16px #0001; padding: 18px; margin-bottom: 18px; }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-bottom: 10px; }
+    .btn { background: #2563eb; color: #fff; border: none; border-radius: 12px; padding: 12px 18px; font-weight: 600; font-size: 1rem; cursor: pointer; transition: background .2s; }
+    .btn.secondary { background: #e0e7ef; color: #2563eb; }
+    .btn:disabled { opacity: .6; cursor: not-allowed; }
+    .scanner-video { width: 100%; border-radius: 12px; background: #000; margin-bottom: 10px; }
+    .thumbs { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+    .thumb { border-radius: 12px; overflow: hidden; border: 1px solid #e0e7ef; width: 90px; height: 120px; position: relative; background: #f1f5f9; }
     .thumb img { width: 100%; height: 100%; object-fit: cover; }
-    .thumb .mui-btn { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); }
+    .thumb .btn { position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%); font-size: .95rem; padding: 7px 12px; }
+    .footer { text-align: center; color: #94a3b8; font-size: .95rem; margin-top: 24px; }
     @media (max-width: 600px) {
-      .mui-container { padding: 4px; }
-      .thumb { width: 80px; height: 100px; }
+      .container { padding: 0 2px; }
+      .thumb { width: 70px; height: 90px; }
     }
     .cropper-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 9999; }
     .cropper-box { background: #fff; border-radius: 16px; padding: 18px; max-width: 98vw; max-height: 90vh; }
@@ -30,56 +37,42 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
-<div class="mui-container">
-  <header style="display:flex;align-items:center;justify-content:space-between;padding:18px 0 8px 0;">
-    <div style="display:flex;align-items:center;gap:12px;">
-      <img src="https://cdn.jsdelivr.net/gh/tabler/tabler-icons/icons/file-text.svg" alt="Scanner" style="width:36px;height:36px;filter:drop-shadow(0 2px 6px #6ea8fe);">
-      <span style="font-size:2rem;font-weight:700;color:#1d4ed8;letter-spacing:1px;">ScanPro</span>
-    </div>
-    <span style="font-size:1rem;color:#6ea8fe;font-weight:500;">Best-in-class Document Scanner</span>
-  </header>
-  <div class="mui-card mui-shadow-2" style="margin-bottom:24px;">
-    <div class="mui-card-content">
-      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
-        <select id="cameraSelect" title="Choose camera" class="mui-btn"></select>
-        <button id="refreshBtn" class="mui-btn mui-btn--secondary">↻ Refresh</button>
-        <span class="mui-typography mui-typography--caption" id="supportBadge">FSAccess ❌</span>
-        <span class="mui-typography mui-typography--caption" id="cvBadge">OpenCV ⏳</span>
-        <span style="flex:1"></span>
-      </div>
-      <video id="video" class="scanner-video" autoplay playsinline muted style="box-shadow:0 4px 24px #6ea8fe44;"></video>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px;justify-content:center;">
-        <button id="captureBtn" class="mui-btn mui-btn--primary" style="font-size:1.1rem;padding:14px 24px;">📸 Capture</button>
-        <button id="torchBtn" class="mui-btn mui-btn--secondary">🔦 Torch</button>
-      </div>
-      <canvas id="workCanvas" hidden></canvas>
-    </div>
+<div class="container">
+  <div class="header">
+    <h1>Document Scanner</h1>
+    <p>Scan, crop, and save documents with ease.</p>
   </div>
-  <div class="mui-card mui-shadow-1">
-    <div class="mui-card-content">
-      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-        <h3 class="mui-typography" style="font-size:1.3rem;font-weight:600;">Scanned Pages</h3>
-        <span style="flex:1"></span>
-        <button id="saveAllBtn" class="mui-btn mui-btn--success">💾 Save JPGs</button>
-        <button id="saveFolderBtn" class="mui-btn mui-btn--secondary">📁 Save to Folder</button>
-        <button id="savePdfBtn" class="mui-btn mui-btn--warning">📕 Save PDF</button>
-        <button id="clearAllBtn" class="mui-btn mui-btn--secondary">🧹 Clear</button>
-      </div>
-      <div id="thumbs" class="thumbs"></div>
-      <p class="mui-typography mui-typography--caption" style="margin-top:8px;color:#6ea8fe;">Tip: After capture, corners are auto-detected. Tap a thumbnail to crop and enhance.</p>
+  <div class="card">
+    <div class="actions">
+      <select id="cameraSelect" title="Choose camera" class="btn secondary"></select>
+      <button id="refreshBtn" class="btn secondary">↻</button>
+      <button id="torchBtn" class="btn secondary">🔦</button>
     </div>
+    <video id="video" class="scanner-video" autoplay playsinline muted></video>
+    <div class="actions">
+      <button id="captureBtn" class="btn">📸 Capture</button>
+    </div>
+    <canvas id="workCanvas" hidden></canvas>
   </div>
-  <footer style="text-align:center;padding:18px 0 8px 0;color:#98a2b3;font-size:1rem;">
-    &copy; 2025 ScanPro &mdash; Powered by OpenCV, Cropper.js, Material UI
-  </footer>
+  <div class="card">
+    <div class="actions">
+      <button id="saveAllBtn" class="btn secondary">💾 JPGs</button>
+      <button id="saveFolderBtn" class="btn secondary">📁 Folder</button>
+      <button id="savePdfBtn" class="btn secondary">📕 PDF</button>
+      <button id="clearAllBtn" class="btn secondary">🧹 Clear</button>
+    </div>
+    <div id="thumbs" class="thumbs"></div>
+    <div style="text-align:center;color:#64748b;font-size:.98rem;margin-top:8px;">Tip: Tap a scan to crop and save.</div>
+  </div>
+  <div class="footer">&copy; 2025 Document Scanner. Powered by OpenCV & Cropper.js.</div>
 </div>
 <!-- Cropper Modal -->
 <div id="cropperModal" class="cropper-modal" style="display:none;">
   <div class="cropper-box">
     <img id="cropperImg" class="cropper-img" />
     <div style="text-align:center;margin-top:12px;">
-      <button class="mui-btn mui-btn--success" onclick="saveCrop()">Save Crop</button>
-      <button class="mui-btn mui-btn--danger" onclick="closeCropper()">Cancel</button>
+      <button class="btn" onclick="saveCrop()">Save</button>
+      <button class="btn secondary" onclick="closeCropper()">Cancel</button>
     </div>
   </div>
 </div>
