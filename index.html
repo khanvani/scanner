@@ -100,13 +100,6 @@
   const cameraSelect = $('#cameraSelect');
   const refreshBtn = $('#refreshBtn');
   // ...existing code...
-  // Ensure script block closes properly
-    const pageIdx = cropperModal.dataset.pageIdx;
-    const canvas = cropper.getCroppedCanvas({ imageSmoothingEnabled: true, imageSmoothingQuality: 'high' });
-    pages[pageIdx].dataUrl = canvas.toDataURL('image/jpeg', 0.95);
-    closeCropper();
-    renderThumbs();
-  }
   function renderThumbs() {
     thumbs.innerHTML = '';
     pages.forEach((page, idx) => {
