@@ -8,29 +8,30 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mui/material@5.15.14/dist/material.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
   <style>
-    body { background: #f7f8fa; color: #222; font-family: 'Inter', 'Roboto', Arial, sans-serif; }
-    .container { max-width: 420px; margin: auto; padding: 0 0 32px 0; }
-    .header { text-align: center; padding: 32px 0 12px 0; }
-    .header h1 { font-size: 2.1rem; font-weight: 700; color: #2563eb; margin: 0; }
-    .header p { color: #64748b; margin: 8px 0 0 0; font-size: 1.1rem; }
-    .card { background: #fff; border-radius: 18px; box-shadow: 0 2px 16px #0001; padding: 18px; margin-bottom: 18px; }
-    .actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-bottom: 10px; }
-    .btn { background: #2563eb; color: #fff; border: none; border-radius: 12px; padding: 12px 18px; font-weight: 600; font-size: 1rem; cursor: pointer; transition: background .2s; }
+    body { background: #f7f8fa; color: #222; font-family: 'Inter', 'Roboto', Arial, sans-serif; margin:0; }
+    .container { max-width: 100vw; min-height: 100vh; margin: 0; padding: 0; display: flex; flex-direction: column; }
+    .header { text-align: center; padding: 32px 0 12px 0; background: #2563eb; color: #fff; border-bottom-left-radius: 24px; border-bottom-right-radius: 24px; box-shadow: 0 2px 16px #2563eb22; }
+    .header h1 { font-size: 2.2rem; font-weight: 700; margin: 0; letter-spacing: 1px; }
+    .header p { color: #e0e7ef; margin: 8px 0 0 0; font-size: 1.1rem; }
+    .main-card { background: #fff; border-radius: 24px; box-shadow: 0 2px 24px #2563eb22; padding: 18px; margin: 18px auto 0 auto; max-width: 420px; width: 95vw; }
+    .actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-bottom: 10px; }
+    .btn { background: #2563eb; color: #fff; border: none; border-radius: 16px; padding: 16px 22px; font-weight: 600; font-size: 1.15rem; cursor: pointer; box-shadow: 0 2px 8px #2563eb22; transition: background .2s; }
     .btn.secondary { background: #e0e7ef; color: #2563eb; }
     .btn:disabled { opacity: .6; cursor: not-allowed; }
-    .scanner-video { width: 100%; border-radius: 12px; background: #000; margin-bottom: 10px; }
-    .thumbs { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
-    .thumb { border-radius: 12px; overflow: hidden; border: 1px solid #e0e7ef; width: 90px; height: 120px; position: relative; background: #f1f5f9; }
+    .scanner-video { width: 100%; border-radius: 18px; background: #000; margin-bottom: 10px; box-shadow: 0 2px 12px #2563eb22; }
+    .thumbs { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 8px; }
+    .thumb { border-radius: 16px; overflow: hidden; border: 1px solid #e0e7ef; width: 100px; height: 140px; position: relative; background: #f1f5f9; box-shadow: 0 2px 8px #2563eb22; }
     .thumb img { width: 100%; height: 100%; object-fit: cover; }
-    .thumb .btn { position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%); font-size: .95rem; padding: 7px 12px; }
-    .footer { text-align: center; color: #94a3b8; font-size: .95rem; margin-top: 24px; }
+    .thumb .btn { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); font-size: 1rem; padding: 10px 16px; border-radius: 12px; }
+    .footer { position: fixed; left: 0; right: 0; bottom: 0; background: #fff; border-top-left-radius: 18px; border-top-right-radius: 18px; box-shadow: 0 -2px 16px #2563eb22; text-align: center; color: #2563eb; font-size: 1.1rem; padding: 14px 0; z-index: 100; }
     @media (max-width: 600px) {
-      .container { padding: 0 2px; }
+      .main-card { padding: 8px; margin: 8px auto 0 auto; }
       .thumb { width: 70px; height: 90px; }
+      .btn { font-size: 1rem; padding: 12px 10px; }
     }
     .cropper-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 9999; }
-    .cropper-box { background: #fff; border-radius: 16px; padding: 18px; max-width: 98vw; max-height: 90vh; }
-    .cropper-img { max-width: 90vw; max-height: 70vh; display: block; margin: auto; border-radius: 12px; }
+    .cropper-box { background: #fff; border-radius: 20px; padding: 18px; max-width: 98vw; max-height: 90vh; box-shadow: 0 2px 24px #2563eb22; }
+    .cropper-img { max-width: 90vw; max-height: 70vh; display: block; margin: auto; border-radius: 16px; }
   </style>
   <script async src="https://docs.opencv.org/4.x/opencv.js" onload="window.cvReady=true"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
@@ -39,10 +40,10 @@
 <body>
 <div class="container">
   <div class="header">
-    <h1>Document Scanner</h1>
-    <p>Scan, crop, and save documents with ease.</p>
+    <h1>DocuScan</h1>
+    <p>Mobile Document Scanner</p>
   </div>
-  <div class="card">
+  <div class="main-card">
     <div class="actions">
       <select id="cameraSelect" title="Choose camera" class="btn secondary"></select>
       <button id="refreshBtn" class="btn secondary">↻</button>
@@ -53,18 +54,16 @@
       <button id="captureBtn" class="btn">📸 Capture</button>
     </div>
     <canvas id="workCanvas" hidden></canvas>
-  </div>
-  <div class="card">
-    <div class="actions">
+    <div class="actions" style="margin-top:18px;">
       <button id="saveAllBtn" class="btn secondary">💾 JPGs</button>
       <button id="saveFolderBtn" class="btn secondary">📁 Folder</button>
       <button id="savePdfBtn" class="btn secondary">📕 PDF</button>
       <button id="clearAllBtn" class="btn secondary">🧹 Clear</button>
     </div>
     <div id="thumbs" class="thumbs"></div>
-    <div style="text-align:center;color:#64748b;font-size:.98rem;margin-top:8px;">Tip: Tap a scan to crop and save.</div>
+    <div style="text-align:center;color:#64748b;font-size:.98rem;margin-top:8px;">Tap a scan to crop and save.</div>
   </div>
-  <div class="footer">&copy; 2025 Document Scanner. Powered by OpenCV & Cropper.js.</div>
+  <div class="footer">DocuScan &mdash; Mobile Scanner &copy; 2025</div>
 </div>
 <!-- Cropper Modal -->
 <div id="cropperModal" class="cropper-modal" style="display:none;">
