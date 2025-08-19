@@ -4,31 +4,124 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ScanPro - Document Scanner</title>
+  <title>Sewadar Document Scanner</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mui/material@5.15.14/dist/material.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
   <style>
-    body { background: #181c24; color: #f3f4f6; font-family: 'Inter', 'Roboto', Arial, sans-serif; margin:0; }
-    .container { max-width: 100vw; min-height: 100vh; margin: 0; padding: 0; display: flex; flex-direction: column; }
-    .header { text-align: center; padding: 18px 0 8px 0; background: #23283a; color: #fff; border-bottom-left-radius: 18px; border-bottom-right-radius: 18px; box-shadow: 0 2px 16px #23283a44; }
-    .header h1 { font-size: 2.1rem; font-weight: 700; margin: 0; letter-spacing: 1px; }
-    .header p { color: #a3a8b8; margin: 8px 0 0 0; font-size: 1.05rem; }
-    .main-card { background: #23283a; border-radius: 24px; box-shadow: 0 2px 24px #23283a44; padding: 18px; margin: 18px auto 0 auto; max-width: 420px; width: 95vw; }
-    .actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-bottom: 10px; }
-    .btn { background: #3b82f6; color: #fff; border: none; border-radius: 50%; width: 64px; height: 64px; font-size: 2.1rem; font-weight: 700; cursor: pointer; box-shadow: 0 2px 12px #3b82f644; display: flex; align-items: center; justify-content: center; transition: background .2s; }
-    .btn.secondary { background: #23283a; color: #a3a8b8; width: 48px; height: 48px; font-size: 1.3rem; border-radius: 50%; }
-    .btn:disabled { opacity: .6; cursor: not-allowed; }
-    .scanner-video { width: 100%; border-radius: 18px; background: #000; margin-bottom: 10px; box-shadow: 0 2px 12px #23283a44; }
-    .thumbs { display: flex; flex-wrap: nowrap; gap: 16px; overflow-x: auto; margin-top: 12px; padding-bottom: 8px; }
-    .thumb { border-radius: 18px; overflow: hidden; border: 2px solid #23283a; width: 120px; height: 160px; position: relative; background: #181c24; box-shadow: 0 2px 8px #23283a44; flex: 0 0 auto; }
-    .thumb img { width: 100%; height: 100%; object-fit: cover; }
-    .thumb .btn { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); font-size: 1.1rem; padding: 0; border-radius: 50%; width: 40px; height: 40px; }
-    .footer { position: fixed; left: 0; right: 0; bottom: 0; background: #23283a; border-top-left-radius: 18px; border-top-right-radius: 18px; box-shadow: 0 -2px 16px #23283a44; text-align: center; color: #a3a8b8; font-size: 1.1rem; padding: 14px 0; z-index: 100; }
-    @media (max-width: 600px) {
-      .main-card { padding: 8px; margin: 8px auto 0 auto; }
-      .thumb { width: 80px; height: 110px; }
-      .btn { font-size: 1.5rem; width: 48px; height: 48px; }
-      .btn.secondary { width: 36px; height: 36px; font-size: 1rem; }
+    body { background: #181c24; color: #f3f4f6; font-family: 'Inter', 'Roboto', Arial, sans-serif; margin:0; height: 100vh; overflow: hidden; }
+    .fixed-header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 56px;
+      background: #23283a;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      font-weight: 600;
+      letter-spacing: 1px;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    .fixed-footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100vw;
+      height: 72px;
+      background: #23283a;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      box-shadow: 0 -2px 8px rgba(0,0,0,0.2);
+    }
+    .footer-menu {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      max-width: 420px;
+      margin: 0 auto;
+      padding: 0 12px;
+    }
+    .footer-btn {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 2rem;
+      margin: 0 8px;
+      padding: 8px 12px;
+      border-radius: 50%;
+      transition: background 0.2s;
+      cursor: pointer;
+      outline: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .footer-btn:active {
+      background: #444;
+    }
+    .footer-btn.capture {
+      background: #00c853;
+      color: #fff;
+      font-size: 2.7rem;
+      box-shadow: 0 2px 8px rgba(0,200,83,0.3);
+      padding: 12px 24px;
+      border-radius: 50%;
+      margin: 0 16px;
+      border: 3px solid #fff;
+    }
+    .footer-btn.capture:active {
+      background: #009624;
+    }
+    .scanner-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      margin-top: 56px;
+      margin-bottom: 72px;
+      height: calc(100vh - 128px);
+      width: 100vw;
+      overflow: hidden;
+    }
+    .scanner-video {
+      width: 100vw;
+      max-width: 420px;
+      height: 100%;
+      max-height: 100%;
+      border-radius: 16px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.4);
+      object-fit: cover;
+      background: #222;
+      margin: 0 auto;
+      display: block;
+    }
+    .video-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      max-width: 420px;
+      height: 100%;
+      pointer-events: none;
+    }
+    @media (max-width: 480px) {
+      .scanner-video, .video-overlay, .fixed-header, .fixed-footer {
+        max-width: 100vw;
+      }
+      .scanner-area {
+        padding: 0;
+      }
     }
     .cropper-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 9999; }
     .cropper-box { background: #23283a; border-radius: 20px; padding: 18px; max-width: 98vw; max-height: 90vh; box-shadow: 0 2px 24px #23283a44; }
@@ -39,33 +132,27 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
-<div class="container">
-  <div class="header">
-    <h1>DocuScan</h1>
-    <p>Mobile Document Scanner</p>
-  </div>
-  <div class="main-card">
+  <div class="fixed-header">Sewadar Document Scanner</div>
+  <div class="scanner-area">
     <video id="video" class="scanner-video" autoplay playsinline muted></video>
-    <div class="actions">
-      <button id="captureBtn" class="btn" title="Scan">📷</button>
-    </div>
-    <div class="actions" style="margin-bottom:0;">
-      <select id="cameraSelect" title="Choose camera" class="btn secondary"></select>
-      <button id="refreshBtn" class="btn secondary" title="Refresh Cameras">⟳</button>
-      <button id="torchBtn" class="btn secondary" title="Toggle Torch">🔦</button>
-    </div>
+    <svg id="videoOverlay" class="video-overlay"></svg>
     <canvas id="workCanvas" hidden></canvas>
     <div id="thumbs" class="thumbs"></div>
-    <div class="actions" style="margin-top:18px;">
-      <button id="saveAllBtn" class="btn secondary" title="Save as JPG">💾</button>
-      <button id="saveFolderBtn" class="btn secondary" title="Save to Folder">📁</button>
-      <button id="savePdfBtn" class="btn secondary" title="Save as PDF">📄</button>
-      <button id="clearAllBtn" class="btn secondary" title="Clear">🧹</button>
-    </div>
     <div style="text-align:center;color:#a3a8b8;font-size:.98rem;margin-top:8px;">Swipe scans below. Tap to crop & save.</div>
   </div>
-  <div class="footer">DocuScan &mdash; Mobile Scanner &copy; 2025</div>
-</div>
+  <div class="fixed-footer">
+    <div class="footer-menu">
+      <div style="display: flex; gap: 8px;">
+        <select id="cameraSelect" title="Choose camera" class="footer-btn"><!-- camera options --></select>
+        <button class="footer-btn" id="btnTorch" title="Toggle Torch"><i class="fas fa-bolt"></i></button>
+      </div>
+      <button class="footer-btn capture" id="btnCapture" title="Capture"><i class="fas fa-circle"></i></button>
+      <div style="display: flex; gap: 8px;">
+        <button class="footer-btn" id="btnSavePDF" title="Save as PDF"><i class="fas fa-file-pdf"></i></button>
+        <button class="footer-btn" id="btnClear" title="Clear Gallery"><i class="fas fa-trash"></i></button>
+      </div>
+    </div>
+  </div>
 <!-- Cropper Modal -->
 <div id="cropperModal" class="cropper-modal" style="display:none;">
   <div class="cropper-box">
@@ -76,199 +163,27 @@
     </div>
   </div>
 </div>
-<script>
-// Utility
-const $ = (s)=>document.querySelector(s);
-const video = $('#video');
-const workCanvas = $('#workCanvas');
-const thumbs = $('#thumbs');
-const captureBtn = $('#captureBtn');
-const saveAllBtn = $('#saveAllBtn');
-const saveFolderBtn = $('#saveFolderBtn');
-const savePdfBtn = $('#savePdfBtn');
-const clearAllBtn = $('#clearAllBtn');
-const torchBtn = $('#torchBtn');
-const cameraSelect = $('#cameraSelect');
-const refreshBtn = $('#refreshBtn');
-let mediaStream=null, track=null;
-let pages=[];
-let cropper = null;
-
-// Camera
-async function listCameras(){
-  const devs = await navigator.mediaDevices.enumerateDevices();
-  const cams = devs.filter(d=>d.kind==='videoinput');
-  cameraSelect.innerHTML='';
-  cams.forEach((d,i)=>{
-    const o=document.createElement('option');o.value=d.deviceId;o.textContent=d.label||`Camera ${i+1}`;cameraSelect.appendChild(o);
-  });
-  const back=cams.find(c=>/back|rear|environment/i.test(c.label));
-  if(back) cameraSelect.value=back.deviceId;
-}
-async function startCamera(deviceId){
-  if(mediaStream){mediaStream.getTracks().forEach(t=>t.stop());mediaStream=null;track=null}
-  const constraints = deviceId?{video:{deviceId:{exact:deviceId}, width:{ideal:2560}, height:{ideal:1440}}}:{video:{facingMode:'environment', width:{ideal:2560}, height:{ideal:1440}}};
-  try{
-    mediaStream=await navigator.mediaDevices.getUserMedia(constraints);
-    video.srcObject=mediaStream;track=mediaStream.getVideoTracks()[0];
-  }catch(e){alert('Camera error: '+e.message)}
-}
-
-// OpenCV
-function waitForCV(){
-  return new Promise((res)=>{
-    const iv=setInterval(()=>{
-  if(window.cv && window.cv.Mat){clearInterval(iv); res();}
-    },80);
-  // Removed cvBadge update
-  });
-}
-
-// Capture
-async function capture(){
-  const settings = track?.getSettings?.()||{};
-  const vw = settings.width || video.videoWidth;
-  const vh = settings.height || video.videoHeight;
-  if(!vw||!vh){alert('Video not ready');return}
-  workCanvas.width=vw; workCanvas.height=vh; const ctx=workCanvas.getContext('2d',{alpha:false});
-  ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high';
-  ctx.drawImage(video,0,0,vw,vh);
-  const dataUrl=workCanvas.toDataURL('image/jpeg',0.95);
-  const page={dataUrl,w:vw,h:vh};
-  try{
-    await waitForCV();
-    const quad = await detectCornersOpenCV({dataUrl,w:vw,h:vh});
-    if(quad) page.quad = quad;
-  }catch(e){console.warn('Auto-detect failed', e)}
-  pages.push(page);
-  renderThumbs();
-}
-
-// Cropper.js integration
-function openCropper(pageIdx) {
-  const page = pages[pageIdx];
-  const img = document.getElementById('cropperImg');
-  img.src = page.dataUrl;
-  document.getElementById('cropperModal').style.display = 'flex';
-  setTimeout(() => {
-    cropper = new Cropper(img, {
-      viewMode: 1,
-      autoCropArea: 1,
-      movable: true,
-      zoomable: true,
-      rotatable: false,
-      scalable: false,
-      responsive: true,
-      background: false
-    });
-  }, 100);
-  cropperModal.dataset.pageIdx = pageIdx;
-}
-function closeCropper() {
-  document.getElementById('cropperModal').style.display = 'none';
-  if (cropper) { cropper.destroy(); cropper = null; }
-}
-function saveCrop() {
-  if (!cropper) return;
-  const pageIdx = cropperModal.dataset.pageIdx;
-  const canvas = cropper.getCroppedCanvas({ imageSmoothingEnabled: true, imageSmoothingQuality: 'high' });
-  pages[pageIdx].dataUrl = canvas.toDataURL('image/jpeg', 0.95);
-  closeCropper();
-  renderThumbs();
-}
-
-function renderThumbs() {
-  thumbs.innerHTML = '';
-  pages.forEach((page, idx) => {
-    const div = document.createElement('div');
-    div.className = 'thumb';
-    div.innerHTML = `<img src="${page.dataUrl}"/><button class='mui-btn mui-btn--primary' onclick='openCropper(${idx})'>Edit</button>`;
-    thumbs.appendChild(div);
-  });
-}
-
-// Save flows
-saveAllBtn.onclick=()=>{
-  if(!pages.length) return alert('No pages');
-  pages.forEach((p,i)=>{ const a=document.createElement('a'); a.href=p.dataUrl; a.download=`scan_${ts()}_${String(i+1).padStart(2,'0')}.jpg`; document.body.appendChild(a); a.click(); a.remove(); })
-}
-saveFolderBtn.onclick=async()=>{
-  if(!pages.length) return alert('No pages'); if(!window.showDirectoryPicker) return alert('Your browser does not support File System Access API.');
-  const dir=await window.showDirectoryPicker({mode:'readwrite'});
-  for(let i=0;i<pages.length;i++){
-    const fh=await dir.getFileHandle(`scan_${ts()}_${String(i+1).padStart(2,'0')}.jpg`,{create:true});
-    const w=await fh.createWritable(); const res=await fetch(pages[i].dataUrl); await w.write(await res.blob()); await w.close();
-  }
-  alert('Saved to selected folder');
-}
-savePdfBtn.onclick=()=>{
-  if(!pages.length) return alert('No pages');
-  const { jsPDF } = window.jspdf; const pdf=new jsPDF({unit:'pt', format:'a4'});
-  pages.forEach((p,i)=>{
-    if(i>0) pdf.addPage();
-    const pageW=pdf.internal.pageSize.getWidth(); const pageH=pdf.internal.pageSize.getHeight();
-    const r=Math.min(pageW/p.w, pageH/p.h); const w=p.w*r, h=p.h*r; const x=(pageW-w)/2, y=(pageH-h)/2;
-    pdf.addImage(p.dataUrl,'JPEG',x,y,w,h);
-  });
-  pdf.save('scans.pdf');
-}
-clearAllBtn.onclick=()=>{pages=[]; renderThumbs()}
-
 torchBtn.onclick=async()=>{
-  if(!track) return alert('No camera');
-  const caps=track.getCapabilities?track.getCapabilities():{}; if(!('torch' in caps)) return alert('Torch not supported on this device');
-  const settings=track.getSettings(); const cur=settings.torch||false; try{ await track.applyConstraints({advanced:[{torch:!cur}]}); }catch(e){ alert('Torch toggle failed: '+e.message) }
-}
-
 cameraSelect.addEventListener('change',()=>startCamera(cameraSelect.value));
-refreshBtn.addEventListener('click',async()=>{await listCameras(); await startCamera(cameraSelect.value||undefined)});
-captureBtn.addEventListener('click',capture);
-
-// OpenCV corner detection
-async function detectCornersOpenCV(page){
-  await waitForCV();
-  const c=document.createElement('canvas'); c.width=page.w; c.height=page.h;
-  const ctx=c.getContext('2d'); const img=new Image(); img.src=page.dataUrl; await img.decode(); ctx.drawImage(img,0,0);
-  const imgData=ctx.getImageData(0,0,c.width,c.height);
-  const src=cv.matFromImageData(imgData);
-  const gray=new cv.Mat(); cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-  const blur=new cv.Mat(); cv.GaussianBlur(gray, blur, new cv.Size(7,7), 0);
-  const edges=new cv.Mat(); cv.Canny(blur, edges, 30, 120);
-  const kernel=cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(5,5));
-  cv.dilate(edges, edges, kernel);
-  const contours=new cv.MatVector(); const hierarchy=new cv.Mat();
-  cv.findContours(edges, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
-  let best=null, bestArea=0;
-  for(let i=0;i<contours.size();i++){
-    const cnt=contours.get(i);
-    const peri=cv.arcLength(cnt,true);
-    const approx=new cv.Mat(); cv.approxPolyDP(cnt, approx, 0.018*peri, true);
-    if(approx.rows===4){
-      const area=cv.contourArea(approx);
-      if(area>bestArea){ bestArea=area; best=approx; }
-    }
-    approx.delete(); cnt.delete();
-  }
-  let quad=null;
-  if(best){
-    const pts=[]; for(let i=0;i<4;i++){ const p=best.intPtr(i); pts.push({x:p[0], y:p[1]}); }
-    pts.sort((a,b)=>a.y-b.y);
-    const top=pts.slice(0,2).sort((a,b)=>a.x-b.x);
-    const bot=pts.slice(2,4).sort((a,b)=>a.x-b.x);
-    quad=[top[0], top[1], bot[1], bot[0]];
-  }
-  src.delete(); gray.delete(); blur.delete(); edges.delete(); kernel.delete(); contours.delete(); hierarchy.delete();
-  return quad;
-}
-
-function ts(){const d=new Date();return d.toISOString().replace(/[:.]/g,'-')}
-
-// Initial load
-window.addEventListener('DOMContentLoaded', async () => {
-  // Removed supportBadge update
-  await listCameras();
-  await startCamera(cameraSelect.value||undefined);
-});
+<script>
+// ...existing code...
+// Button event listeners for new footer
+document.getElementById('btnCapture').onclick = () => {
+  if (window.capture) window.capture();
+};
+document.getElementById('btnTorch').onclick = () => {
+  if (window.torchBtn && window.torchBtn.onclick) window.torchBtn.onclick();
+};
+document.getElementById('btnSavePDF').onclick = () => {
+  if (window.savePdfBtn && window.savePdfBtn.onclick) window.savePdfBtn.onclick();
+};
+document.getElementById('btnClear').onclick = () => {
+  if (window.clearAllBtn && window.clearAllBtn.onclick) window.clearAllBtn.onclick();
+};
+document.getElementById('cameraSelect').onchange = () => {
+  if (window.cameraSelect && window.cameraSelect.onchange) window.cameraSelect.onchange();
+};
+// ...existing code...
 </script>
 </body>
 </html>
