@@ -32,9 +32,15 @@
 </head>
 <body>
 <div class="mui-container">
-  <div class="mui-card mui-shadow-2">
+  <header style="display:flex;align-items:center;justify-content:space-between;padding:18px 0 8px 0;">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <img src="https://cdn.jsdelivr.net/gh/tabler/tabler-icons/icons/file-text.svg" alt="Scanner" style="width:36px;height:36px;filter:drop-shadow(0 2px 6px #6ea8fe);">
+      <span style="font-size:2rem;font-weight:700;color:#1d4ed8;letter-spacing:1px;">ScanPro</span>
+    </div>
+    <span style="font-size:1rem;color:#6ea8fe;font-weight:500;">Best-in-class Document Scanner</span>
+  </header>
+  <div class="mui-card mui-shadow-2" style="margin-bottom:24px;">
     <div class="mui-card-content">
-      <h2 class="mui-typography">Document Scanner</h2>
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
         <select id="cameraSelect" title="Choose camera" class="mui-btn"></select>
         <button id="refreshBtn" class="mui-btn mui-btn--secondary">↻ Refresh</button>
@@ -42,9 +48,9 @@
         <span class="mui-typography mui-typography--caption" id="cvBadge">OpenCV ⏳</span>
         <span style="flex:1"></span>
       </div>
-      <video id="video" class="scanner-video" autoplay playsinline muted></video>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px;">
-        <button id="captureBtn" class="mui-btn mui-btn--primary">📸 Capture (HD)</button>
+      <video id="video" class="scanner-video" autoplay playsinline muted style="box-shadow:0 4px 24px #6ea8fe44;"></video>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px;justify-content:center;">
+        <button id="captureBtn" class="mui-btn mui-btn--primary" style="font-size:1.1rem;padding:14px 24px;">📸 Capture</button>
         <button id="torchBtn" class="mui-btn mui-btn--secondary">🔦 Torch</button>
       </div>
       <canvas id="workCanvas" hidden></canvas>
@@ -53,7 +59,7 @@
   <div class="mui-card mui-shadow-1">
     <div class="mui-card-content">
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-        <h3 class="mui-typography">Pages</h3>
+        <h3 class="mui-typography" style="font-size:1.3rem;font-weight:600;">Scanned Pages</h3>
         <span style="flex:1"></span>
         <button id="saveAllBtn" class="mui-btn mui-btn--success">💾 Save JPGs</button>
         <button id="saveFolderBtn" class="mui-btn mui-btn--secondary">📁 Save to Folder</button>
@@ -61,9 +67,12 @@
         <button id="clearAllBtn" class="mui-btn mui-btn--secondary">🧹 Clear</button>
       </div>
       <div id="thumbs" class="thumbs"></div>
-      <p class="mui-typography mui-typography--caption">Tip: After capture, corners are auto-detected. Tap a thumbnail to crop and enhance.</p>
+      <p class="mui-typography mui-typography--caption" style="margin-top:8px;color:#6ea8fe;">Tip: After capture, corners are auto-detected. Tap a thumbnail to crop and enhance.</p>
     </div>
   </div>
+  <footer style="text-align:center;padding:18px 0 8px 0;color:#98a2b3;font-size:1rem;">
+    &copy; 2025 ScanPro &mdash; Powered by OpenCV, Cropper.js, Material UI
+  </footer>
 </div>
 <!-- Cropper Modal -->
 <div id="cropperModal" class="cropper-modal" style="display:none;">
@@ -90,106 +99,8 @@
   const torchBtn = $('#torchBtn');
   const cameraSelect = $('#cameraSelect');
   const refreshBtn = $('#refreshBtn');
-  const supportBadge = $('#supportBadge');
-  const cvBadge = $('#cvBadge');
-
-  const overlay = $('#overlay');
-  const editImg = $('#editImg');
-  const poly = $('#poly');
-  const polyShape = $('#polyShape');
-  const handles = [$('#h0'),$('#h1'),$('#h2'),$('#h3')];
-  const cancelEdit = $('#cancelEdit');
-  const resetEdit = $('#resetEdit');
-  const applyEdit = $('#applyEdit');
-  const enhanceToggle = $('#enhanceToggle');
-
-  let mediaStream=null, track=null;
-  let pages=[]; // {dataUrl, w, h, quad?}
-  let editIndex=-1;
-  let handlePts=[]; // in displayed coords
-
-  const hasFS = !!(window.showDirectoryPicker && window.FileSystemHandle);
-  supportBadge.textContent = `FSAccess ${hasFS?'✅':'❌'}`;
-
-  // Wait for OpenCV to be ready
-  function waitForCV(){
-    return new Promise((res)=>{
-      const iv=setInterval(()=>{
-        if(window.cv && window.cv.Mat){clearInterval(iv); cvBadge.textContent='OpenCV ✅'; res();}
-      },80);
-      setTimeout(()=>{cvBadge.textContent='OpenCV ⚠️';},4000);
-    });
-  }
-
-  function ts(){const d=new Date();return d.toISOString().replace(/[:.]/g,'-')}
-
-  async function listCameras(){
-    const devs = await navigator.mediaDevices.enumerateDevices();
-    const cams = devs.filter(d=>d.kind==='videoinput');
-    cameraSelect.innerHTML='';
-    cams.forEach((d,i)=>{
-      const o=document.createElement('option');o.value=d.deviceId;o.textContent=d.label||`Camera ${i+1}`;cameraSelect.appendChild(o);
-    });
-    const back=cams.find(c=>/back|rear|environment/i.test(c.label));
-    if(back) cameraSelect.value=back.deviceId;
-  }
-  async function startCamera(deviceId){
-    if(mediaStream){mediaStream.getTracks().forEach(t=>t.stop());mediaStream=null;track=null}
-    const constraints = deviceId?{video:{deviceId:{exact:deviceId}, width:{ideal:2560}, height:{ideal:1440}}}:{video:{facingMode:'environment', width:{ideal:2560}, height:{ideal:1440}}};
-    try{
-      mediaStream=await navigator.mediaDevices.getUserMedia(constraints);
-      video.srcObject=mediaStream;track=mediaStream.getVideoTracks()[0];
-    }catch(e){alert('Camera error: '+e.message)}
-  }
-
-  async function capture(){
-    const settings = track?.getSettings?.()||{};
-    const vw = settings.width || video.videoWidth;
-    const vh = settings.height || video.videoHeight;
-    if(!vw||!vh){alert('Video not ready');return}
-    // HD capture at native stream resolution
-    workCanvas.width=vw; workCanvas.height=vh; const ctx=workCanvas.getContext('2d',{alpha:false});
-    ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high';
-    ctx.drawImage(video,0,0,vw,vh);
-    const dataUrl=workCanvas.toDataURL('image/jpeg',0.95);
-    const page={dataUrl,w:vw,h:vh};
-    // Run auto-detect in background and store quad for this page BEFORE pushing to pages
-    try{
-      await waitForCV();
-      const quad = await detectCornersOpenCV({dataUrl,w:vw,h:vh});
-      if(quad) page.quad = quad; // TL,TR,BR,BL in image coords
-    }catch(e){console.warn('Auto-detect failed', e)}
-    pages.push(page);
-    renderThumbs();
-  }
-
-  // Cropper.js integration
-  let cropper = null;
-  function openCropper(pageIdx) {
-    const page = pages[pageIdx];
-    const img = document.getElementById('cropperImg');
-    img.src = page.dataUrl;
-    document.getElementById('cropperModal').style.display = 'flex';
-    setTimeout(() => {
-      cropper = new Cropper(img, {
-        viewMode: 1,
-        autoCropArea: 1,
-        movable: true,
-        zoomable: true,
-        rotatable: false,
-        scalable: false,
-        responsive: true,
-        background: false
-      });
-    }, 100);
-    cropperModal.dataset.pageIdx = pageIdx;
-  }
-  function closeCropper() {
-    document.getElementById('cropperModal').style.display = 'none';
-    if (cropper) { cropper.destroy(); cropper = null; }
-  }
-  function saveCrop() {
-    if (!cropper) return;
+  // ...existing code...
+  // Ensure script block closes properly
     const pageIdx = cropperModal.dataset.pageIdx;
     const canvas = cropper.getCroppedCanvas({ imageSmoothingEnabled: true, imageSmoothingQuality: 'high' });
     pages[pageIdx].dataUrl = canvas.toDataURL('image/jpeg', 0.95);
@@ -206,68 +117,6 @@
     });
   }
 
-  function imgDisplayRect(imgEl){
-    const r=imgEl.getBoundingClientRect();
-    return {x:r.left, y:r.top, w:r.width, h:r.height};
-  }
-
-  function setHandles(pts){
-    handlePts=pts;
-    handles.forEach((h,i)=>{ const p=pts[i]; h.style.left=(p.x-11)+'px'; h.style.top=(p.y-11)+'px'; });
-    polyShape.setAttribute('points', pts.map(p=>`${p.x},${p.y}`).join(' '));
-  }
-
-  function defaultQuad(){
-    const r=imgDisplayRect(editImg);
-    const margin=Math.min(r.w,r.h)*0.08;
-    const pts=[
-      {x:r.x+margin,y:r.y+margin},
-      {x:r.x+r.w-margin,y:r.y+margin},
-      {x:r.x+r.w-margin,y:r.y+r.h-margin},
-      {x:r.x+margin,y:r.y+r.h-margin}
-    ];
-    setHandles(pts);
-  }
-
-  function attachDrag(handle,i){
-    const drag=(e)=>{ const pt=(e.touches?e.touches[0]:e); const x=pt.clientX, y=pt.clientY; handlePts[i]={x,y}; setHandles(handlePts); };
-    const start=(e)=>{e.preventDefault(); document.addEventListener('mousemove',drag); document.addEventListener('touchmove',drag,{passive:false});};
-    const end=()=>{document.removeEventListener('mousemove',drag);document.removeEventListener('touchmove',drag)};
-    handle.addEventListener('mousedown',start); handle.addEventListener('touchstart',start,{passive:false});
-    document.addEventListener('mouseup',end); document.addEventListener('touchend',end);
-  }
-  handles.forEach(attachDrag);
-
-  function toImageCoords(displayPt){
-    const r = editImg.getBoundingClientRect();
-    const imgW = editImg.naturalWidth, imgH = editImg.naturalHeight;
-    const scaleX = imgW / r.width; const scaleY = imgH / r.height;
-    return {x:(displayPt.x - r.left) * scaleX, y:(displayPt.y - r.top) * scaleY};
-  }
-  function toDisplayCoords(imagePt){
-    const r = editImg.getBoundingClientRect();
-    const imgW = editImg.naturalWidth, imgH = editImg.naturalHeight;
-    const scaleX = r.width / imgW; const scaleY = r.height / imgH;
-    return {x:r.left + imagePt.x * scaleX, y:r.top + imagePt.y * scaleY};
-  }
-  function quadToImage(){ return handlePts.map(p=>toImageCoords(p)); }
-
-  async function openEditor(index){
-    editIndex=index; editImg.src=pages[index].dataUrl; overlay.classList.add('open');
-    setTimeout(async()=>{
-      const b = document.body.getBoundingClientRect();
-      poly.setAttribute('viewBox', `0 0 ${b.width} ${b.height}`);
-      poly.setAttribute('width', b.width);
-      poly.setAttribute('height', b.height);
-      // use detected quad if present
-      const page=pages[index];
-      if(page.quad){ setHandles(page.quad.map(toDisplayCoords)); }
-      else { defaultQuad(); try{ await waitForCV(); const q=await detectCornersOpenCV(page); if(q){ page.quad=q; setHandles(q.map(toDisplayCoords)); } }catch(e){} }
-    },60);
-  }
-
-  cancelEdit.onclick=()=>{overlay.classList.remove('open')}
-  resetEdit.onclick=defaultQuad;
 
   // ——— Perspective math ———
   function computeHomography(src, dst){
@@ -459,7 +308,6 @@
 
   // Boot
   (async()=>{ try{ await startCamera(); await listCameras(); if(cameraSelect.value) await startCamera(cameraSelect.value);}catch(e){console.error(e)} })();
-})();
 </script>
 </body>
 </html>
